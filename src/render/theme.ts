@@ -9,16 +9,20 @@
  * own source or measured by driving the app is not allowed to masquerade as one.
  */
 
-/** [CHOSEN] The 8 channel colours cycled across channels. */
+/**
+ * [CHOSEN] The 8 channel colours cycled across channels, so D8k+0..D8k+7 are drawn
+ * red, orange, yellow, green, brown, blue, white, grey in that order. Must stay
+ * identical to CHANNEL_COLORS in src/ui/metrics.ts, which names the same channels.
+ */
 export const LOGIC2_CHANNEL_COLORS: readonly string[] = [
-  '#d4d4d4', // ch0
-  '#C79579', // ch1
-  '#FF6D7F', // ch2
-  '#FFB45B', // ch3
-  '#e8d836', // ch4
-  '#58c667', // ch5
-  '#53A9FD', // ch6
-  '#AF92FB', // ch7
+  '#FF4D4D', // D8k+0 red
+  '#FF9E2C', // D8k+1 orange
+  '#F2D024', // D8k+2 yellow
+  '#48C860', // D8k+3 green
+  '#B0733C', // D8k+4 brown
+  '#4C9AFF', // D8k+5 blue
+  '#FFFFFF', // D8k+6 white
+  '#9AA0A6', // D8k+7 grey
 ];
 
 /** [SOURCE] Dark theme backgrounds, darkest first. */

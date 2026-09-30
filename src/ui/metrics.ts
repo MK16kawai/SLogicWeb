@@ -15,10 +15,24 @@
  * measurement of 96 device px is written here as 48.
  */
 
-/** [CHOSEN] . Identical in light and dark theme except ch0. */
+/**
+ * [CHOSEN] The 8 digital-channel colours, cycled so that every group of eight reads
+ * red, orange, yellow, green, brown, blue, white, grey: D8k+0..D8k+7 are those in that
+ * order, and D8(k+1)+0 starts the cycle again.
+ *
+ * This list drives the labels, chips and strips; the waveform itself uses
+ * LOGIC2_CHANNEL_COLORS in src/render/theme.ts. The two are identical on purpose -
+ * change both together, or a channel is drawn in one colour and named in another.
+ */
 export const CHANNEL_COLORS: readonly string[] = [
-  '#d4d4d4', '#C79579', '#FF6D7F', '#FFB45B',
-  '#e8d836', '#58c667', '#53A9FD', '#AF92FB',
+  '#FF4D4D', // D8k+0 red
+  '#FF9E2C', // D8k+1 orange
+  '#F2D024', // D8k+2 yellow
+  '#48C860', // D8k+3 green
+  '#B0733C', // D8k+4 brown
+  '#4C9AFF', // D8k+5 blue
+  '#FFFFFF', // D8k+6 white
+  '#9AA0A6', // D8k+7 grey
 ];
 
 /** [CHOSEN] . */
