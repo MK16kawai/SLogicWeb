@@ -1,0 +1,79 @@
+# Build the multi-file web distribution and publish it to GitHub Pages.
+#
+# Why each step exists (see docs/ and src/decode/tools/vendor-assets.mjs):
+#   - public/pyodide/ and public/decoders/ are gitignored; they are vendored at
+#     build time from the `pyodide` npm package and a libsigrokdecode checkout.
+#     `vite build` refuses to run without them (requireRuntimeAssets plugin).
+#   - vendor-assets.mjs needs `zip` and `python3` on PATH (both preinstalled on
+#     ubuntu runners) and the `pyodide` dependency from `npm ci`.
+#   - The site is served at the ROOT of the custom domain slogic.sipeed.com, so
+#     the base is `/`. It MUST be an absolute base: the decode worker resolves
+#     Pyodide/decoders from import.meta.env.BASE_URL, and a relative base ('./')
+#     would 404 inside the blob worker (see src/decode/worker.ts).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two Pages deploys race; let a running one finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Pin a libsigrokdecode commit for reproducible decoder sets. Bump deliberately.
+  # Using a branch instead of a SHA makes the build non-reproducible over time.
+  LIBSIGROKDECODE_REF: master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch libsigrokdecode decoders
+        run: |
+          git clone --depth 1 --branch "$LIBSIGROKDECODE_REF" \
+            https://github.com/sigrokproject/libsigrokdecode "$RUNNER_TEMP/lsd"
+
+      - name: Vendor runtime assets (Pyodide + decoders + manifest)
+        run: node src/decode/tools/vendor-assets.mjs "$RUNNER_TEMP/lsd/decoders"
+
+      - name: Type-check
+        run: npm run check
+
+      - name: Build (absolute base for the custom-domain root)
+        run: npx vite build --base=/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
