@@ -371,7 +371,18 @@ export function recorded32(): Record<number, AuxModel> {
     // Real 32U3 firmware reports length 2 here but consumes/returns the complete padded
     // four-byte transfer for the mask.
     0x01: { status: 0x00010401, payload: [0xffffffff] },
-    0x02: { status: 0x00011002, payload: [(1600 << 16) | 0, 100] },
+    // The two base clocks the hardware actually reports (NOTES 8.9): 1400 MHz at index 0
+    // and 800 MHz at index 1. There is no 1600 MHz base - the driver's own rate table
+    // (`slogic32u3.c`, `rates_32u3`) stops at 1400, and a rate like 16 MHz divides only
+    // the 800 one, so a single-base model would refuse a rate the board can make.
+    0x02: {
+      status: 0x00011002,
+      payload: [(1400 << 16) | 0, 100],
+      onWord0: (self, v) => {
+        const idx = v & 0xffff;
+        self.payload[0] = ((idx === 0 ? 1400 : 800) << 16) | idx;
+      },
+    },
     0x03: { status: 0x00010403, payload: [0x00000136] },
     0x04: { status: 0x00010804, payload: [0] },
     0x05: { status: 0x00010205, payload: [0] },

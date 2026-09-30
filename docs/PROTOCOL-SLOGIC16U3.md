@@ -176,7 +176,9 @@ Ceiling by channel count on non-Windows (`api.c:134`):
 | 4  | 800 MHz |
 
 SLogic32U3 adds 32 channels at 200 MHz and raises the shared wire ceiling to 800 MB/s
-(4ch@1600M, 8ch@800M, 16ch@400M, 32ch@200M).
+(4ch@1400M, 8ch@800M, 16ch@400M, 32ch@200M). The 4-channel ceiling is 1400, not 1600:
+the device's two base clocks are 1400 and 800 MHz, so 1600 is not expressible, and the
+driver's own rate table (`slogic32u3.c`) stops at 1400.
 
 Hardware bandwidth cap is 3200 Mbit/s = 400 MB/s. **WebUSB will not sustain that.** Expect
 the browser path to cap well below the device ceiling. Measure what it actually sustains

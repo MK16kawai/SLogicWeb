@@ -38,6 +38,8 @@ interface AuxModel {
   status: number;
   payload: number[];
   ready?: boolean;
+  /** Called when the host writes payload word 0; may change the model's base clock. */
+  onWord0?: (self: AuxModel, value: number) => void;
 }
 
 class RateDevice {
@@ -132,7 +134,10 @@ class RateDevice {
       const m = this.auxModel();
       const idx = (s.value - 0x0010) / 4;
       const words = Math.max(1, Math.ceil(((m.status & 0xffff) >> 9) / 4));
-      if (idx < words) m.payload[idx] = word;
+      if (idx < words) {
+        m.payload[idx] = word;
+        if (idx === 0) m.onWord0?.(m, word);
+      }
     }
     return { status: 'ok', bytesWritten: 4 };
   }
@@ -210,7 +215,15 @@ class RateDevice {
 function recorded32(): Record<number, AuxModel> {
   return {
     0x01: { status: 0x00010401, payload: [0xffffffff] },
-    0x02: { status: 0x00011002, payload: [(1600 << 16) | 0, 100] },
+    // The real 32U3 base pair: 1400 MHz at index 0, 800 MHz at index 1 (NOTES 8.9).
+    0x02: {
+      status: 0x00011002,
+      payload: [(1400 << 16) | 0, 100],
+      onWord0: (self, v) => {
+        const idx = v & 0xffff;
+        self.payload[0] = ((idx === 0 ? 1400 : 800) << 16) | idx;
+      },
+    },
     0x03: { status: 0x00010403, payload: [0x00000136] },
     0x05: { status: 0x00010205, payload: [0] },
   };

@@ -127,10 +127,19 @@ const VREF_SLOPE = 0.005166; // volts per LSB
 const VREF_OFFSET = 0.4318; // volts at code 0
 const VREF_CODE_MAX = 1023;
 
+/**
+ * Every rate the U3 firmware offers, ascending.
+ *
+ * Straight from the driver's per-model tables (`slogic/slogic16u3.c`,
+ * `slogic/slogic32u3.c`): both stop at 800 MHz and only the 32U3 adds 1400. There is
+ * no 1600 MHz rate - the 32U3's base clocks are 1400 and 800 MHz, so 1600 is not
+ * expressible and `programSamplerate` refuses it rather than programming a rate the
+ * sampler cannot honour.
+ */
 export const SAMPLERATES_HZ = [
   5e6, 8e6, 10e6, 16e6, 20e6, 25e6, 32e6, 40e6, 50e6, 80e6, 100e6, 160e6, 200e6,
   400e6, 800e6,
-  1.6e9,
+  1.4e9,
 ];
 
 /** Non-Windows ceiling by channel count (api.c:134). */
@@ -140,9 +149,18 @@ export const MAX_SAMPLERATE_HZ: Record<number, number> = {
   16: 200e6,
 };
 
-/** SLogic32 U3 ceilings from the slogic-dev libsigrok model. */
+/**
+ * SLogic32 U3 ceilings: 4 ch -> 1400, 8 ch -> 800, 16 ch -> 400, 32 ch -> 200 MHz
+ * (`slogic/slogic32u3.c`, `limits_32u3`).
+ *
+ * The 4-channel entry is 1400, not the 1600 a simple "double the 800 MHz base" would
+ * suggest: the hardware's own table tops out at 1400 MHz for 4 channels, and 1600 is
+ * unreachable from both base clocks anyway (1400/1600 is not an integer, 800/1600 is
+ * 0.5). Advertising 1600 only moved the failure to `programSamplerate`, which refused
+ * it at RUN time after the user had already picked it.
+ */
 export const MAX_SAMPLERATE_HZ_SLOGIC32_U3: Record<number, number> = {
-  4: 1.6e9,
+  4: 1.4e9,
   8: 800e6,
   16: 400e6,
   32: 200e6,

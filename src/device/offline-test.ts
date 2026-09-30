@@ -27,6 +27,7 @@ import {
   configureTestMode,
   configureThreshold,
   decodeDeviceFlags,
+  MAX_SAMPLERATE_HZ_SLOGIC32_U3,
   SAMPLERATES_HZ,
   sampleLengthForSamples,
   samplesForSampleLength,
@@ -404,9 +405,9 @@ async function main(): Promise<void> {
   }
   {
     const { bus: b, dev } = bus(recorded32());
-    const r = await configureSamplerate(b, 1.6e9);
-    check('32U3 base clock read as 1600 MHz', r.baseHz === 1.6e9, String(r.baseHz));
-    check('32U3 divider 1 for 1600 MHz', r.divider === 1, String(r.divider));
+    const r = await configureSamplerate(b, 1.4e9);
+    check('32U3 base clock read as 1400 MHz', r.baseHz === 1400e6, String(r.baseHz));
+    check('32U3 divider 1 for 1400 MHz', r.divider === 1, String(r.divider));
     check('32U3 divider register written as 0', dev.log.includes('W 14 00000000'), dev.log.join(' | '));
   }
   {
@@ -571,14 +572,27 @@ async function main(): Promise<void> {
           unreachable.push(`${rate / 1e6} MHz (${String(e)})`);
         }
       }
-      // 1.6 GHz is the one rate the 32U3's two bases cannot make: 1400/1.6 is not
-      // an integer and 800/1.6 is 0.5, so the refusal is correct - and it is worth
-      // knowing, because MAX_SAMPLERATE_HZ_SLOGIC32_U3 advertises 1.6 GHz for 4
-      // channels. Either the firmware has a third base this walk never reaches (the
-      // driver stops at index 1 for the same reason) or the ceiling is aspirational.
-      check('every table rate but 1600 MHz is reachable on the 32U3 base pair',
-        unreachable.length === 1 && unreachable[0].startsWith('1600 MHz'),
-        unreachable.join(', '));
+      // Every rate the panel offers has to be expressible by the two base clocks the
+      // hardware reports. 1600 MHz is not - 1400/1600 is not an integer and 800/1600 is
+      // 0.5 - which is why the driver's own table (`slogic32u3.c`, `rates_32u3`) stops
+      // at 1400 and the 4-channel ceiling here is 1400 rather than 1600.
+      check('every offered rate is reachable on the 32U3 base pair',
+        unreachable.length === 0, unreachable.join(', '));
+
+      // A ceiling is what the panel filters the dropdown by, so it has to be a rate
+      // that is both offered and programmable. 1600 satisfied neither: it was in a
+      // table nothing else used and no base could make.
+      check('every 32U3 ceiling is a rate the panel can offer',
+        Object.values(MAX_SAMPLERATE_HZ_SLOGIC32_U3).every((r) => SAMPLERATES_HZ.includes(r)),
+        Object.entries(MAX_SAMPLERATE_HZ_SLOGIC32_U3)
+          .map(([c, r]) => `${c}ch:${r / 1e6}M`).join(' '));
+      const ceiling4 = MAX_SAMPLERATE_HZ_SLOGIC32_U3[4]!;
+      check('the 4-channel ceiling is not above the hardware table',
+        ceiling4 === 1400e6, `${ceiling4 / 1e6} MHz`);
+      const top = await configureSamplerate(bus(twoBase()).bus, ceiling4);
+      check('the 4-channel ceiling is a rate the base pair can actually make',
+        top.baseHz === 1400e6 && top.divider === 1,
+        `${ceiling4 / 1e6} MHz -> base ${top.baseHz / 1e6} MHz, divider ${top.divider}`);
     }
     {
       // Only the 1400 MHz base exists. 5 MHz needs 280 there, so the honest answer
