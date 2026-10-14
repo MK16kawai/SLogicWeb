@@ -34,7 +34,7 @@ import {
   MAX_SAMPLES, levelAt, loadFiles, loadLwcap, saveLwcap,
 } from './captureIO.js';
 import { formatCount, formatDuration, formatFreq, formatRate,
-  formatCaptureLabel, formatStatusError } from './format.js';
+  formatAnalyzerNote, formatCaptureLabel, formatStatusError } from './format.js';
 import { applyStaticI18n, getLocale, t,
   type MessageKey, type MessageVars } from './i18n.js';
 import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
@@ -951,7 +951,7 @@ export class App {
     this.order = this.channels.map((c) => c.index);
     // Annotations belong to a capture; a new one invalidates them.
     for (const a of this.analyzers) {
-      a.result = null; a.index = null; a.status = 'idle'; a.message = 'not decoded';
+      a.result = null; a.index = null; a.status = 'idle'; a.note = { kind: 'pending' };
     }
     this.cursorA = null;
     this.cursorB = null;
@@ -1080,7 +1080,7 @@ export class App {
       this.channels = defaultChannels(cfg.channels);
       this.order = this.channels.map((c) => c.index);
       for (const a of this.analyzers) {
-        a.result = null; a.index = null; a.status = 'idle'; a.message = 'not decoded';
+        a.result = null; a.index = null; a.status = 'idle'; a.note = { kind: 'pending' };
       }
       this.captureBytes = 0;
       this.lostSamples = 0;
@@ -1243,7 +1243,7 @@ export class App {
       result: null,
       index: null,
       status: 'idle',
-      message: 'not decoded',
+      note: { kind: 'pending' },
     };
     this.analyzers.push(a);
     this.renderPanels();
@@ -1287,7 +1287,7 @@ export class App {
       }
 
       a.status = 'decoding';
-      a.message = `${formatCount(edgeTotal)} edges`;
+      a.note = { kind: 'edges', count: edgeTotal };
       this.decodeBusy = true;
       this.renderPanels();
 
@@ -1311,15 +1311,19 @@ export class App {
       a.result = result;
       a.index = new AnnotationIndex(result);
       a.status = 'done';
-      a.message =
-        `${formatCount(result.annotations.count)} anns, ${Math.round(result.decodeMs)} ms ` +
-        `(${Math.round(performance.now() - t0)} ms wall)`;
-      if (result.errors.length) a.message += ` · ${result.errors[0]}`;
+      a.note = {
+        kind: 'stats',
+        anns: result.annotations.count,
+        decodeMs: result.decodeMs,
+        wallMs: performance.now() - t0,
+        // The decoder's own first error is diagnostic payload: appended raw.
+        ...(result.errors.length ? { firstError: result.errors[0]! } : {}),
+      };
     } catch (e) {
       a.status = 'error';
-      a.message = e instanceof DecodeTimeoutError ? 'timed out'
-        : e instanceof DecodeCancelledError ? 'cancelled'
-          : e instanceof Error ? e.message : String(e);
+      a.note = e instanceof DecodeTimeoutError ? { kind: 'timeout' as const }
+        : e instanceof DecodeCancelledError ? { kind: 'cancelled' as const }
+          : { kind: 'error' as const, detail: e instanceof Error ? e.message : String(e) };
       this.fail('error.decode', e, { id: a.decoderId });
     } finally {
       this.decodeBusy = false;
@@ -1453,7 +1457,7 @@ export class App {
         id: a.id,
         decoder: a.decoderId,
         status: a.status,
-        message: a.message,
+        message: formatAnalyzerNote(a.note),
         annotations: a.result?.annotations.count ?? 0,
         laneChannel: a.laneChannel,
       })),

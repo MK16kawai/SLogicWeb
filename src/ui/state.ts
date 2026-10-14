@@ -21,6 +21,20 @@ export interface ChannelState {
 
 export type AnalyzerStatus = 'idle' | 'decoding' | 'done' | 'error';
 
+/**
+ * An analyzer's status note as structured data, formatted by format.ts's
+ * formatAnalyzerNote at render time so a locale switch retranslates it (same rule
+ * as CaptureLabel). The `error` variant's detail - and `stats.firstError` - is
+ * decoder/worker diagnostic payload and passes through untranslated.
+ */
+export type AnalyzerNote =
+  | { kind: 'pending' }
+  | { kind: 'edges'; count: number }
+  | { kind: 'stats'; anns: number; decodeMs: number; wallMs: number; firstError?: string }
+  | { kind: 'timeout' }
+  | { kind: 'cancelled' }
+  | { kind: 'error'; detail: string };
+
 export interface AnalyzerState {
   id: string;
   decoderId: string;
@@ -35,7 +49,7 @@ export interface AnalyzerState {
   result: DecodeResult | null;
   index: AnnotationIndex | null;
   status: AnalyzerStatus;
-  message: string;
+  note: AnalyzerNote;
 }
 
 export interface CaptureSettings {

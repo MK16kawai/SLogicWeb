@@ -30,8 +30,8 @@ import { en, type Messages } from '../locales/en.js';
 import {
   formatMessage, getLocale, LOCALE_LABELS, LOCALES, pickLocale, t, translate,
 } from '../i18n.js';
-import { formatCaptureLabel, formatStatusError } from '../format.js';
-import type { CaptureLabel } from '../state.js';
+import { formatAnalyzerNote, formatCaptureLabel, formatStatusError } from '../format.js';
+import type { AnalyzerNote, CaptureLabel } from '../state.js';
 
 /** Same structural-typing trick as sr-selftest.ts: node access without @types/node. */
 const nodeProcess = (() => {
@@ -241,6 +241,24 @@ function check(name: string, pass: boolean, detail: string): void {
   check('formatStatusError joins translated prefix with raw diagnostic detail',
     plain === 'open capture: zip: bad' && withVars === 'decode uart: boom',
     `${JSON.stringify(plain)}, ${JSON.stringify(withVars)}`);
+}
+
+{
+  const cases: [AnalyzerNote, string][] = [
+    [{ kind: 'pending' }, 'not decoded'],
+    [{ kind: 'edges', count: 2048 }, '2,048 edges'],
+    [{ kind: 'stats', anns: 512, decodeMs: 41.6, wallMs: 87.4 }, '512 anns, 42 ms (87 ms wall)'],
+    [{ kind: 'stats', anns: 1, decodeMs: 2, wallMs: 3, firstError: 'uart: bad frame' },
+      '1 anns, 2 ms (3 ms wall) · uart: bad frame'],
+    [{ kind: 'timeout' }, 'timed out'],
+    [{ kind: 'cancelled' }, 'cancelled'],
+    [{ kind: 'error', detail: 'worker exploded' }, 'worker exploded'],
+  ];
+  const bad = cases.filter(([note, want]) => formatAnalyzerNote(note) !== want);
+  check('formatAnalyzerNote renders every variant, diagnostics passing through raw',
+    bad.length === 0,
+    bad.length === 0 ? `${cases.length}/7 variants match`
+      : bad.map(([n, want]) => `${n.kind}: got ${JSON.stringify(formatAnalyzerNote(n))} want ${JSON.stringify(want)}`).join('; '));
 }
 
 // ---------------------------------------------------------------------- report

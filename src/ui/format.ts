@@ -24,7 +24,7 @@
  */
 
 import { t } from './i18n.js';
-import type { CaptureLabel, StatusError } from './state.js';
+import type { AnalyzerNote, CaptureLabel, StatusError } from './state.js';
 
 const PS_PER = { s: 1e12, ms: 1e9, us: 1e6, ns: 1e3, ps: 1 } as const;
 type Unit = keyof typeof PS_PER;
@@ -167,4 +167,26 @@ export function formatCaptureLabel(label: CaptureLabel): string {
 /** "open capture: <diagnostic>" - the prefix is chrome (translated), detail is payload. */
 export function formatStatusError(err: StatusError): string {
   return `${t(err.what, err.vars)}: ${err.detail}`;
+}
+
+/**
+ * An analyzer's status note, formatted at render time (state.ts explains why it is
+ * data). Diagnostics (`error.detail`, `stats.firstError`) pass through untranslated.
+ */
+export function formatAnalyzerNote(note: AnalyzerNote): string {
+  switch (note.kind) {
+    case 'pending': return t('analyzerNote.pending');
+    case 'edges': return t('analyzerNote.edges', { count: formatCount(note.count) });
+    case 'stats': {
+      const base = t('analyzerNote.stats', {
+        anns: formatCount(note.anns),
+        decodeMs: Math.round(note.decodeMs),
+        wallMs: Math.round(note.wallMs),
+      });
+      return note.firstError ? `${base} · ${note.firstError}` : base;
+    }
+    case 'timeout': return t('analyzerNote.timeout');
+    case 'cancelled': return t('analyzerNote.cancelled');
+    case 'error': return note.detail;
+  }
 }

@@ -371,6 +371,13 @@ for i18next in a tree whose only runtime dependency is pyodide.
   console.error prefix in `fail()` is now the stable message KEY (`error.openCapture`
   and friends), greppable in every locale; the status bar still shows the translated
   prefix followed by the raw diagnostic detail.
+- **Analyzer status notes are structured too** (`AnalyzerNote` in state.ts): pending /
+  edges / stats / timeout / cancelled are translated at render time, while decoder
+  diagnostics (`error.detail`, `stats.firstError`) pass through raw. The USB console's
+  seed line is chrome in the then-current locale; the scrollback after it (echoed
+  commands, device replies) is history and deliberately does not retranslate.
+  Percent-notation option labels and glyphs (`×`, `···`, rail icons, `>` echo) are
+  notation, not prose - they stay literal.
 - **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
   descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
   `sourceDescription` (it is baked into .lwcap files at save time - translating it

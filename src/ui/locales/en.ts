@@ -124,6 +124,7 @@ export const en = {
   'capturePanel.condLow': 'low',
   'capturePanel.condRising': 'rising',
   'capturePanel.condFalling': 'falling',
+  'capturePanel.condEdge': 'edge',
   'capturePanel.condJoiner': ' AND ',
   'capturePanel.armed': 'Armed: {what}. T=0 at the trigger; up to {duration} before it is kept as negative time.',
   'capturePanel.armedCapped': 'Armed: {what}. T=0 at the trigger; up to {duration} before it is kept as negative time (capped by the {megabytes} MiB pre-trigger buffer).',

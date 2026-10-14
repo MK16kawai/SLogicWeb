@@ -14,6 +14,7 @@
  * that could drift.
  */
 
+import { formatAnalyzerNote } from './format.js';
 import { COLORS } from './metrics.js';
 import { channelColor, type AnalyzerState, type ChannelState, type TriggerMode } from './state.js';
 
@@ -152,7 +153,7 @@ export class ChannelList {
         x.title = `Remove ${a.label}`;
         x.addEventListener('click', () => this.cb.onRemoveAnalyzer(a.id));
         chip.appendChild(x);
-        chip.title = a.message || a.label;
+        chip.title = formatAnalyzerNote(a.note) || a.label;
         body.appendChild(chip);
       }
 
