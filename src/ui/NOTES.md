@@ -337,3 +337,34 @@ Two other honest gaps:
 `run-ui.mjs` creates a throwaway Brave profile in the OS temp directory and **does not
 delete it**; the path is printed at the end of each run. Nothing in `src/ui` recursively
 removes any directory, including ones it created itself.
+
+## 11. i18n: catalogs, the core, and what is deliberately not translated
+
+The shell speaks more than English now. The mechanism is house-built (`src/ui/i18n.ts`
++ `src/ui/locales/<locale>.ts`), not a dependency: four locales do not make the case
+for i18next in a tree whose only runtime dependency is pyodide.
+
+- **The English catalog is the key contract.** `locales/en.ts` exports the catalog and
+  `Messages = Record<keyof typeof en, string>`; every other locale declares
+  `: Messages`, so a missing/extra/renamed key is a tsc error, not a runtime hole.
+  Keys are flat and dotted so they map 1:1 onto `data-i18n` attributes in index.html.
+- **Interpolation is `{var}` with a visible-failure contract**: an unknown variable
+  stays literal in the output (swallowed would look identical to a correct translation
+  until someone counts). Pinned by `src/ui/tools/i18n-selftest.ts`, run like the other
+  ui suites:
+
+  ```
+  node_modules/.bin/esbuild src/ui/tools/i18n-selftest.ts --bundle --format=esm \
+    --platform=node --outfile=/tmp/i18n-selftest.mjs && node /tmp/i18n-selftest.mjs
+  ```
+
+- **Default is English, deliberately not the browser's language** - the choice is only
+  ever the user's explicit one, persisted in localStorage['logicweb.lang'] [CHOSEN];
+  absent or unknown stored values mean 'en'.
+- **The core is node-safe at module top level** (storage behind a typeof guard, no DOM
+  touch outside functions) because the self-test bundles it for node.
+- **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
+  descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
+  `sourceDescription` (it is baked into .lwcap files at save time - translating it
+  would make saved files locale-dependent), canvas glyphs and the A/B/|B-A| status
+  symbols, and the boot-failure message in main.ts.
