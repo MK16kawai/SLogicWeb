@@ -59,6 +59,7 @@ export const zhCN: Messages = {
   'error.dropoutAccounting': '丢样统计',
   'error.decodeWorkerWarmup': '解码工作线程预热',
   'error.decode': '解码 {id}',
+  'error.localeLoad': '无法加载语言包',
 
   // -------------------------------------------------------- hover readout
   'hover.width': '宽度：{duration}',

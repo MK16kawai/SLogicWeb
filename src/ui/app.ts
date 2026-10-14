@@ -803,7 +803,10 @@ export class App {
         children: LOCALES.map((l) => ({
           label: LOCALE_LABELS[l],
           checked: l === getLocale(),
-          onPick: () => setLocale(l),
+          // Async now: the catalog may need fetching. Only a catalog load
+          // failure is surfaced through the status-error path; a pick superseded
+          // by a newer one is a normal outcome, not an error.
+          onPick: () => { void setLocale(l).then((r) => { if (r === 'failed') this.fail('error.localeLoad', l); }); },
         })),
       },
     ];

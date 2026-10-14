@@ -65,6 +65,7 @@ export const en = {
   'error.dropoutAccounting': 'dropout accounting',
   'error.decodeWorkerWarmup': 'decode worker warmup',
   'error.decode': 'decode {id}',
+  'error.localeLoad': 'Could not load the language catalog',
 
   // -------------------------------------------------------- hover readout
   'hover.width': 'Width: {duration}',

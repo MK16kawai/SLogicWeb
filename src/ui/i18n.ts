@@ -9,14 +9,21 @@
  *
  * Design:
  * - The English catalog (locales/en.ts) is the source of truth for the key set;
- *   `Messages` derives from it and tsc proves every other catalog complete.
+ *   `Messages` derives from it and tsc proves every other catalog complete. `en`
+ *   is also the synchronous fallback and stays resident in the registry.
+ * - Non-English catalogs live behind LOADERS and are fetched through loadCatalog();
+ *   DICTS holds every catalog that has actually loaded. Switching locale is
+ *   therefore asynchronous (setLocale resolves a LocaleSwitchResult) while the
+ *   render path stays synchronous: t()/applyStaticI18n only ever read DICTS, and `current`
+ *   never names a locale whose catalog is absent (the load-before-commit invariant).
  * - Locale state is module-level with a subscriber set; panels do NOT subscribe -
  *   they call t() while rebuilding in render(), and App runs one re-render pass on
  *   change (re-render = clear and rebuild, so nothing stale survives).
  * - Persistence is localStorage['logicweb.lang'] [CHOSEN]; unknown or absent stored
  *   values fall back to 'en' (the mandated default - no browser auto-detection).
+ *   The stored locale is read by initLocale() at boot, never at module evaluation.
  * - The module is node-safe at top level (the tools/ self-test bundles it with
- *   --platform=node): module evaluation only reads storage behind a typeof guard;
+ *   --platform=node): module evaluation touches neither storage nor the DOM;
  *   every document/localStorage touch point sits inside a function.
  */
 
@@ -42,7 +49,52 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   fr: 'Français',
 };
 
-const DICTS: Record<Locale, Messages> = { en, 'zh-CN': zhCN, ru, fr };
+/**
+ * Loaded catalogs, keyed by locale. `en` is always present, which is what lets
+ * t()/applyStaticI18n stay synchronous and fall back to English by construction.
+ * Non-English entries appear once loadCatalog() resolves.
+ */
+const DICTS: Partial<Record<Locale, Messages>> = { en };
+
+/**
+ * One loader per non-default locale. The literal `import()` specifiers that make
+ * rollup emit one chunk per locale arrive in the next commit; the wrappers here
+ * are TEMPORARY and resolve the still-statically-imported catalogs, so this
+ * commit's bundle composition is unchanged.
+ */
+const LOADERS: Record<Exclude<Locale, 'en'>, () => Promise<Messages>> = {
+  'zh-CN': () => Promise.resolve(zhCN),
+  ru: () => Promise.resolve(ru),
+  fr: () => Promise.resolve(fr),
+};
+
+/** In-flight load promises, so a repeated pick issues one load per locale. */
+const INFLIGHT = new Map<Locale, Promise<Messages>>();
+
+/**
+ * Resolve a locale's catalog, loading it on first use. Repeat calls share the
+ * settled dict (or the in-flight promise); a rejection is not memoized.
+ */
+export function loadCatalog(locale: Locale): Promise<Messages> {
+  const cached = DICTS[locale];
+  if (cached) return Promise.resolve(cached);
+  const pending = INFLIGHT.get(locale);
+  if (pending) return pending;
+  const load = locale === 'en' ? Promise.resolve(en) : LOADERS[locale]();
+  const promise = load.then(
+    (dict) => {
+      DICTS[locale] = dict;
+      INFLIGHT.delete(locale);
+      return dict;
+    },
+    (err: unknown) => {
+      INFLIGHT.delete(locale);
+      throw err;
+    },
+  );
+  INFLIGHT.set(locale, promise);
+  return promise;
+}
 
 /** [CHOSEN] localStorage key holding the persisted locale. */
 const STORAGE_KEY = 'logicweb.lang';
@@ -85,7 +137,23 @@ function storage(): Storage | null {
   }
 }
 
-let current: Locale = pickLocale(storage()?.getItem(STORAGE_KEY) ?? null);
+/**
+ * The active locale. Always a locale whose catalog is in DICTS (the
+ * load-before-commit invariant); module evaluation keeps the mandated `en`
+ * default and initLocale() promotes the persisted choice once it has loaded.
+ */
+let current: Locale = 'en';
+
+/** Monotonic id of the newest setLocale(); older picks see a mismatch and lose. */
+let requestToken = 0;
+
+/**
+ * Outcome of setLocale(): `committed` = the pick is now active; `superseded` = a
+ * newer pick won the race (a normal outcome, not a failure); `failed` = the
+ * catalog could not be loaded, so the previous locale was kept.
+ */
+export type LocaleSwitchResult = 'committed' | 'superseded' | 'failed';
+
 const listeners = new Set<() => void>();
 
 export function getLocale(): Locale {
@@ -93,12 +161,32 @@ export function getLocale(): Locale {
 }
 
 /**
- * Switch the active locale: persist, sync `<html lang>`, notify subscribers.
- * No-op when the locale is unchanged, so re-picking the active menu item does not
- * trigger a pointless full re-render.
+ * Switch the active locale: load the catalog, persist, sync `<html lang>`, notify
+ * subscribers. Asynchronous by necessity - the catalog may need to be fetched.
+ * It never rejects; the resolved LocaleSwitchResult distinguishes a committed
+ * switch, a pick superseded by a newer one, and a catalog load failure, so
+ * callers only surface `failed` through the ordinary status-error path.
+ *
+ * Picking the currently-active locale is a committed no-op (no load, no
+ * notification, no pointless full re-render) BUT still bumps the request token
+ * first, so it cancels any in-flight pick: the last pick always wins. A rapid
+ * double-pick settles on the LAST pick with exactly one notification (one
+ * re-render) because only the winner passes the requestToken check. On failure
+ * `current` is left untouched and the persisted value is kept, so a transient
+ * error retries next session.
  */
-export function setLocale(locale: Locale): void {
-  if (locale === current) return;
+export async function setLocale(locale: Locale): Promise<LocaleSwitchResult> {
+  const token = ++requestToken;
+  if (locale === current) return 'committed';
+  try {
+    await loadCatalog(locale);
+  } catch (err) {
+    // A failure on a pick the user has already moved past is history, not an error.
+    if (token !== requestToken) return 'superseded';
+    console.warn(`[i18n] catalog load failed for ${locale}`, err);
+    return 'failed';
+  }
+  if (token !== requestToken) return 'superseded';
   current = locale;
   try {
     storage()?.setItem(STORAGE_KEY, locale);
@@ -108,6 +196,20 @@ export function setLocale(locale: Locale): void {
   }
   if (typeof document !== 'undefined') document.documentElement.lang = locale;
   for (const cb of listeners) cb();
+  return 'committed';
+}
+
+/**
+ * Boot hook: preload the persisted locale so the first App render paints in it.
+ * Never rejects - a stored locale that fails to load leaves the module on `en`
+ * with a warning, keeping boot off the loud-failure overlay path.
+ */
+export async function initLocale(): Promise<Locale> {
+  const stored = pickLocale(storage()?.getItem(STORAGE_KEY) ?? null);
+  if (stored !== current && (await setLocale(stored)) === 'failed') {
+    console.warn(`[i18n] staying on ${current}; stored ${stored} did not load`);
+  }
+  return current;
 }
 
 /** Subscribe to locale changes; returns the unsubscribe. */
@@ -128,7 +230,7 @@ export function t(key: MessageKey, vars?: MessageVars): string {
  * attribute in index.html names a real key, so a typo fails there, not silently.
  */
 export function applyStaticI18n(root: ParentNode): void {
-  const dict = DICTS[current] as Record<string, string>;
+  const dict = (DICTS[current] ?? en) as Record<string, string>;
   const fallback = en as Record<string, string>;
   const lookup = (key: string): string | null => {
     const v = dict[key] ?? fallback[key];

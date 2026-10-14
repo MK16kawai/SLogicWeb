@@ -21,7 +21,12 @@
  *     braces, well-formed placeholder names, and every other catalog repeats that
  *     sanity with the same `{var}` name set per key (a typoed placeholder fails);
  *   - catalog key parity across locales holds at runtime, and each locale really
- *     translates the salient probe keys.
+ *     translates the salient probe keys;
+ *   - the async catalog path: every locale loads through loadCatalog() to the very
+ *     same catalog object as the static import (identity, not just key parity),
+ *     setLocale() round-trips, a superseded pick resolves 'superseded' without
+ *     notifying, and picking the currently-active locale still cancels an
+ *     in-flight pick (the last-pick-wins race guard).
  *
  * Parity and the placeholder-set check are meaningful only now that a second
  * locale ships: with a single catalog they could never fail, and a tautological
@@ -33,7 +38,8 @@ import { zhCN } from '../locales/zh-CN.js';
 import { ru } from '../locales/ru.js';
 import { fr } from '../locales/fr.js';
 import {
-  formatMessage, getLocale, LOCALE_LABELS, LOCALES, pickLocale, t, translate,
+  formatMessage, getLocale, loadCatalog, LOCALE_LABELS, LOCALES, onLocaleChange,
+  pickLocale, setLocale, t, translate, type Locale,
 } from '../i18n.js';
 import { formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from '../format.js';
 import type { AnalyzerNote, CaptureLabel, CaptureSettings } from '../state.js';
@@ -361,6 +367,80 @@ const baseSettings: CaptureSettings = {
     bad.length === 0,
     bad.length === 0 ? LOCALES.map((l) => `${l}=${dicts[l]?.['toolbar.start'] ?? 'English'}`).join(', ')
       : bad.join('; '));
+}
+
+// ------------------------------------------- async catalog loader + switch path
+// The registry/async design is exercised through the public API: the loaders really
+// load (identity AND parity are re-checked through the async path, not via the test's
+// own static imports), switches round-trip, a superseded pick loses WITHOUT notifying,
+// and a pick of the active locale still cancels an in-flight pick.
+
+{
+  const enKeys = Object.keys(en).sort().join('\n');
+  const staticById: Record<Locale, Messages> = { en, 'zh-CN': zhCN, ru, fr };
+  const bad: string[] = [];
+  for (const l of LOCALES) {
+    try {
+      const dict = await loadCatalog(l);
+      // A loader that resolved the wrong same-keyed catalog would still pass the
+      // key-parity check; identity pins it to the catalog file it names.
+      if (dict !== staticById[l]) bad.push(`${l}: loader returned a different object`);
+      if (Object.keys(dict).sort().join('\n') !== enKeys) bad.push(`${l}: key set differs from en`);
+    } catch (err) {
+      bad.push(`${l}: load failed (${err instanceof Error ? err.message : String(err)})`);
+    }
+  }
+  check('every LOCALES entry loads through the async loader to its own catalog, key parity holds',
+    bad.length === 0,
+    bad.length === 0 ? `${LOCALES.length} locales loaded, identity + key parity hold` : bad.join('; '));
+}
+
+{
+  // Async round-trip: fr really becomes active (t() serves the French value), then
+  // en restores. This leaves the module on 'en' so the checks below are real
+  // switches rather than no-ops.
+  const on = await setLocale('fr');
+  const frText = t('toolbar.start');
+  const off = await setLocale('en');
+  const enText = t('toolbar.start');
+  check('async setLocale round-trips fr and back to en',
+    on === 'committed' && getLocale() === 'en' && off === 'committed' &&
+    frText === fr['toolbar.start'] && frText !== en['toolbar.start'] &&
+    enText === en['toolbar.start'],
+    `fr→${JSON.stringify(frText)}, en→${JSON.stringify(enText)}`);
+}
+
+{
+  // Fix-1 guard: picking the currently-active locale must STILL cancel an in-flight
+  // pick. The token bump precedes the no-op fast return, so the later 'en' pick wins
+  // and the 'ru' load commits nothing. Without the token-first ordering the 'ru' load
+  // would commit and notify -> `fired` would be 1 and getLocale() 'ru' -> FAIL.
+  await setLocale('en'); // settle on en before asserting
+  let fired = 0;
+  const unsubscribe = onLocaleChange(() => { fired += 1; });
+  const p1 = setLocale('ru');
+  const p2 = setLocale('en');
+  const [r1, r2] = await Promise.all([p1, p2]);
+  unsubscribe();
+  check('picking the active locale cancels an in-flight pick (last pick wins)',
+    r1 === 'superseded' && r2 === 'committed' && getLocale() === 'en' && fired === 0,
+    `p1=${r1}, p2=${r2}, locale=${getLocale()}, listener fired ${fired}×`);
+}
+
+{
+  // Rapid double-pick: the first is superseded and must resolve 'superseded' without
+  // notifying; only the last commits, so exactly one re-render is queued. Without
+  // the requestToken guard both would notify and `fired` would be 2 -> FAIL.
+  let fired = 0;
+  const unsubscribe = onLocaleChange(() => { fired += 1; });
+  const p1 = setLocale('ru');
+  const p2 = setLocale('fr');
+  const [r1, r2] = await Promise.all([p1, p2]);
+  unsubscribe();
+  check('a superseded pick resolves superseded and notifies exactly once',
+    r1 === 'superseded' && r2 === 'committed' && getLocale() === 'fr' && fired === 1,
+    `p1=${r1}, p2=${r2}, locale=${getLocale()}, listener fired ${fired}×`);
+  await setLocale('en'); // leave the suite settled on en
 }
 
 // ---------------------------------------------------------------------- report

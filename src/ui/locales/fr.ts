@@ -61,6 +61,7 @@ export const fr: Messages = {
   'error.dropoutAccounting': 'comptage des pertes',
   'error.decodeWorkerWarmup': 'préchauffage du worker de décodage',
   'error.decode': 'décodage {id}',
+  'error.localeLoad': 'Impossible de charger le catalogue de langue',
 
   // -------------------------------------------------------- hover readout
   'hover.width': 'Largeur : {duration}',

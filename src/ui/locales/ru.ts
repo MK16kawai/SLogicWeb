@@ -61,6 +61,7 @@ export const ru: Messages = {
   'error.dropoutAccounting': 'учёт пропусков',
   'error.decodeWorkerWarmup': 'прогрев воркера декодера',
   'error.decode': 'декодирование {id}',
+  'error.localeLoad': 'Не удалось загрузить языковой каталог',
 
   // -------------------------------------------------------- hover readout
   'hover.width': 'Ширина: {duration}',
