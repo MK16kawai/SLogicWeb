@@ -27,6 +27,9 @@
  */
 
 import { en, type Messages } from '../locales/en.js';
+import { zhCN } from '../locales/zh-CN.js';
+import { ru } from '../locales/ru.js';
+import { fr } from '../locales/fr.js';
 import {
   formatMessage, getLocale, LOCALE_LABELS, LOCALES, pickLocale, t, translate,
 } from '../i18n.js';
@@ -86,10 +89,11 @@ function check(name: string, pass: boolean, detail: string): void {
 {
   const absent = pickLocale(null);
   const unknown = pickLocale('xx-YY');
-  const known = pickLocale('en');
-  check('pickLocale falls back to en for absent/unknown, keeps a known locale',
-    absent === 'en' && unknown === 'en' && known === 'en',
-    `null→${absent}, xx-YY→${unknown}, en→${known}`);
+  const knownEn = pickLocale('en');
+  const knownFr = pickLocale('fr');
+  check('pickLocale falls back to en for absent/unknown, keeps known locales',
+    absent === 'en' && unknown === 'en' && knownEn === 'en' && knownFr === 'fr',
+    `null→${absent}, xx-YY→${unknown}, en→${knownEn}, fr→${knownFr}`);
 }
 
 // ------------------------------------------------------------------ translation
@@ -287,6 +291,43 @@ const baseSettings: CaptureSettings = {
     bad.length === 0,
     bad.length === 0 ? `${cases.length}/5 cases match`
       : bad.map(([s, ch, want]) => `ch${ch}: got ${JSON.stringify(formatTriggerSummary(s, ch))} want ${JSON.stringify(want)}`).join('; '));
+}
+
+// ------------------------------------------- catalog parity across locales
+// tsc already proves it structurally (each catalog is `: Messages`); this runtime
+// mirror catches a catalog that cheated with `as Messages`, and a locale that ships
+// untranslated English values wholesale.
+
+{
+  const enKeys = Object.keys(en).sort().join('\n');
+  const others: [string, Messages][] = [['zh-CN', zhCN], ['ru', ru], ['fr', fr]];
+  const bad = others.filter(([, dict]) => Object.keys(dict).sort().join('\n') !== enKeys);
+  check('every locale catalog has exactly the English key set at runtime',
+    bad.length === 0,
+    bad.length === 0 ? `${others.length} catalogs in parity (${Object.keys(en).length} keys)`
+      : bad.map(([l]) => l).join(', '));
+}
+
+{
+  // A catalog that silently shipped the English text would pass parity and fail users.
+  // Assert the PROPERTY (translated ≠ English) on salient keys, not exact wording, so a
+  // legitimate rewording does not break the check. A locale missing from `dicts` is a
+  // clean FAIL, not a crash.
+  const probes: (keyof Messages)[] = ['toolbar.start', 'settings.language'];
+  const dicts: Record<string, Messages | undefined> = { 'zh-CN': zhCN, ru, fr };
+  const bad: string[] = [];
+  for (const l of LOCALES) {
+    if (l === 'en') continue;
+    const dict = dicts[l];
+    if (!dict) { bad.push(`${l}: no catalog`); continue; }
+    for (const k of probes) {
+      if (dict[k] === en[k]) bad.push(`${l}:${k} is still English`);
+    }
+  }
+  check('each locale actually translates the salient probe keys',
+    bad.length === 0,
+    bad.length === 0 ? LOCALES.map((l) => `${l}=${dicts[l]?.['toolbar.start'] ?? 'English'}`).join(', ')
+      : bad.join('; '));
 }
 
 // ---------------------------------------------------------------------- report

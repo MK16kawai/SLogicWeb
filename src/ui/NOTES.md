@@ -395,6 +395,15 @@ for i18next in a tree whose only runtime dependency is pyodide.
   declaration so the measured values cannot drift; the picker's scaleX entrance stays
   picker-specific. Focus returns to the Settings button on Escape/pick, but an outside
   click keeps the focus the user chose.
+- **Four catalogs ship**: en (source of truth), zh-CN, ru, fr. tsc proves completeness
+  (`: Messages`), and the self-test re-proves it at runtime (catching an `as Messages`
+  cheat) plus a salient-probe check so a wholesale-untranslated catalog cannot pass.
+  Russian and French counts use the count-neutral "Noun: {n}" shape - plural rules are
+  out of scope. Command syntax (`read 0x000c 4`), device mode names (USB MAX SPEED),
+  and percent notation stay English in every catalog. End-to-end switching (menu pick,
+  reload persistence, `<html lang>`, corrupt-storage fallback, byte-identical English
+  restoration) was exercised with headless-Chrome CDP drives during development;
+  those drives are throwaway scripts, not committed tooling.
 - **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
   descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
   `sourceDescription` (it is baked into .lwcap files at save time - translating it

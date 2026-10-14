@@ -21,23 +21,28 @@
  */
 
 import { en, type Messages } from './locales/en.js';
+import { fr } from './locales/fr.js';
+import { ru } from './locales/ru.js';
+import { zhCN } from './locales/zh-CN.js';
 
-/** Known locales. Widened to the full shipping set in the translations commit. */
-export const LOCALES = ['en'] as const;
+/** The shipping locales. `en` first: it is the default and the fallback. */
+export const LOCALES = ['en', 'zh-CN', 'ru', 'fr'] as const;
 export type Locale = (typeof LOCALES)[number];
 export type MessageKey = keyof Messages;
 export type MessageVars = Record<string, string | number>;
 
 /**
  * Native display names for the settings menu's language list - they are registry
- * data, not message keys, so the menu reads the same labels in every locale.
- * Widened together with LOCALES [CHOSEN].
+ * data, not message keys, so the menu reads the same labels in every locale [CHOSEN].
  */
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: 'English',
+  'zh-CN': '简体中文',
+  ru: 'Русский',
+  fr: 'Français',
 };
 
-const DICTS: Record<Locale, Messages> = { en };
+const DICTS: Record<Locale, Messages> = { en, 'zh-CN': zhCN, ru, fr };
 
 /** [CHOSEN] localStorage key holding the persisted locale. */
 const STORAGE_KEY = 'logicweb.lang';
