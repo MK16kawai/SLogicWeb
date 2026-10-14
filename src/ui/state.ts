@@ -10,6 +10,7 @@
 import type { AnnotationIndex, DecodeResult } from '../decode/index.js';
 import { ANALYZER_COLORS, CHANNEL_COLORS } from './metrics.js';
 import type { ChannelCount } from '../types.js';
+import type { MessageKey, MessageVars } from './i18n.js';
 
 export interface ChannelState {
   /** Capture channel index, i.e. D<index>. Never changes; display order does. */
@@ -69,6 +70,31 @@ export interface TriggerCondition {
 export type TriggerMode = 'low' | 'high' | 'rising' | 'falling' | 'dont-care';
 
 export type Source = 'none' | 'file' | 'device';
+
+/**
+ * The capture title as structured data, formatted by format.ts's formatCaptureLabel
+ * at render time. Stored pre-formatted, a mid-session locale switch could not
+ * retranslate it; as data, it can. `loaded.source` is the loader's
+ * sourceDescription - user/file data (baked into .lwcap at save time) that passes
+ * through untranslated on purpose.
+ */
+export type CaptureLabel =
+  | { kind: 'none' }
+  | { kind: 'capturing'; channels: number; rate: number }
+  | { kind: 'loaded'; source: string; ms: number }
+  | { kind: 'stoppedNoTrigger'; samples: number }
+  | { kind: 'live'; samples: number; rate: number; seconds: number };
+
+/**
+ * The status-bar error as structured data: `what` is chrome (a catalog key, translated
+ * at render time), `detail` is the diagnostic payload (kept verbatim - parser and
+ * device errors are data, not prose). See format.ts's formatStatusError.
+ */
+export interface StatusError {
+  what: MessageKey;
+  vars?: MessageVars;
+  detail: string;
+}
 
 /**
  * Default names are empty: the coloured D<index> tag is the channel's identity, and

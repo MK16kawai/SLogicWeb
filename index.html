@@ -17,10 +17,10 @@
 <body>
   <div id="app">
     <div id="toolbar">
-      <button id="transport" class="primary" title="Start a capture on the connected device">Start</button>
-      <button id="btn-open" title="Load a sigrok .sr session or a .lwcap">Open…</button>
-      <button id="btn-save" title="Save this capture as .lwcap">Save</button>
-      <button id="btn-fit" title="Zoom to the whole capture">Fit</button>
+      <button id="transport" class="primary" data-i18n="toolbar.start" data-i18n-title="toolbar.startTitle" title="Start a capture on the connected device">Start</button>
+      <button id="btn-open" data-i18n="toolbar.open" data-i18n-title="toolbar.openTitle" title="Load a sigrok .sr session or a .lwcap">Open…</button>
+      <button id="btn-save" data-i18n="toolbar.save" data-i18n-title="toolbar.saveTitle" title="Save this capture as .lwcap">Save</button>
+      <button id="btn-fit" data-i18n="toolbar.fit" data-i18n-title="toolbar.fitTitle" title="Zoom to the whole capture">Fit</button>
       <span id="capture-title">no capture</span>
       <span class="spacer"></span>
     </div>
@@ -37,8 +37,8 @@
           <div id="plot">
             <div id="wave-stack"></div>
             <div id="empty-hint">
-              No capture loaded.<br />
-              Open a .sr or .lwcap file, or connect an SLogic16/32 U3.
+              <span data-i18n="emptyHint.line1">No capture loaded.</span><br />
+              <span data-i18n="emptyHint.line2">Open a .sr or .lwcap file, or connect an SLogic16/32 U3.</span>
             </div>
           </div>
         </div>
@@ -47,8 +47,8 @@
       <div id="side-panel"></div>
 
       <div id="rail">
-        <button class="rail-btn" id="rail-device" title="Device and capture settings">◈</button>
-        <button class="rail-btn" id="rail-analyzers" title="Protocol analyzers">≡</button>
+        <button class="rail-btn" id="rail-device" data-i18n-title="rail.deviceTitle" title="Device and capture settings">◈</button>
+        <button class="rail-btn" id="rail-analyzers" data-i18n-title="rail.analyzersTitle" title="Protocol analyzers">≡</button>
       </div>
     </div>
 

@@ -30,15 +30,24 @@ import { en, type Messages } from '../locales/en.js';
 import {
   formatMessage, getLocale, LOCALE_LABELS, LOCALES, pickLocale, t, translate,
 } from '../i18n.js';
+import { formatCaptureLabel, formatStatusError } from '../format.js';
+import type { CaptureLabel } from '../state.js';
 
 /** Same structural-typing trick as sr-selftest.ts: node access without @types/node. */
 const nodeProcess = (() => {
   const p = (globalThis as {
-    process?: { exit(code: number): never };
+    process?: {
+      exit(code: number): never;
+      getBuiltinModule?(name: string): unknown;
+    };
   }).process;
   if (!p || typeof p.exit !== 'function') throw new Error('this entry point only runs under node');
   return p;
 })();
+
+interface FsLike {
+  readFileSync(p: string, enc: 'utf8'): string;
+}
 
 interface TestResult {
   name: string;
@@ -140,6 +149,98 @@ function check(name: string, pass: boolean, detail: string): void {
   check('LOCALE_LABELS names every registered locale',
     missing.length === 0,
     missing.length === 0 ? LOCALES.map((l) => `${l}=${LOCALE_LABELS[l]}`).join(', ') : missing.join(','));
+}
+
+// ------------------------------------------- index.html static chrome (check 5)
+// The HTML attribute keys cannot be type-checked by tsc, so pin them here instead:
+// every data-i18n / data-i18n-title value must name a real catalog key, and the
+// element's literal fallback text must equal the English catalog value - the
+// "English rendering unchanged" control (PRD §8), not just key existence.
+
+{
+  const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+  if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
+  const html = fs.readFileSync('index.html', 'utf8');
+  const catalog = en as Record<string, string>;
+
+  // Elements whose textContent is translated: pure-text inner content only.
+  const textFound = new Map<string, string>();
+  for (const m of html.matchAll(/<\w+[^>]*\sdata-i18n="([^"]+)"[^>]*>([^<]*)<\//g)) {
+    textFound.set(m[1]!, m[2]!);
+  }
+  // Elements whose title attribute is translated.
+  const titleFound = new Map<string, string>();
+  for (const m of html.matchAll(/<[^>]*\sdata-i18n-title="[^"]+"[^>]*>/g)) {
+    const tag = m[0];
+    const key = /data-i18n-title="([^"]+)"/.exec(tag)?.[1];
+    const title = /\stitle="([^"]*)"/.exec(tag)?.[1];
+    if (key !== undefined && title !== undefined) titleFound.set(key, title);
+  }
+
+  const expectedText = [
+    'toolbar.start', 'toolbar.open', 'toolbar.save', 'toolbar.fit',
+    'emptyHint.line1', 'emptyHint.line2',
+  ];
+  const expectedTitles = [
+    'toolbar.startTitle', 'toolbar.openTitle', 'toolbar.saveTitle', 'toolbar.fitTitle',
+    'rail.deviceTitle', 'rail.analyzersTitle',
+  ];
+
+  const missingTextKeys = expectedText.filter((k) => !textFound.has(k));
+  const unknownTextKeys = [...textFound.keys()].filter((k) => !(k in catalog));
+  check('index.html data-i18n keys are exactly the expected set and all exist',
+    missingTextKeys.length === 0 && unknownTextKeys.length === 0 &&
+    textFound.size === expectedText.length,
+    `found ${textFound.size}: ${[...textFound.keys()].join(', ') || '(none)'}`);
+
+  const missingTitleKeys = expectedTitles.filter((k) => !titleFound.has(k));
+  const unknownTitleKeys = [...titleFound.keys()].filter((k) => !(k in catalog));
+  check('index.html data-i18n-title keys are exactly the expected set and all exist',
+    missingTitleKeys.length === 0 && unknownTitleKeys.length === 0 &&
+    titleFound.size === expectedTitles.length,
+    `found ${titleFound.size}: ${[...titleFound.keys()].join(', ') || '(none)'}`);
+
+  const textDrift = [...textFound.entries()].filter(([k, text]) => catalog[k] !== text);
+  check('data-i18n element fallback text equals the English catalog value',
+    textDrift.length === 0,
+    textDrift.length === 0 ? 'all match' :
+      textDrift.map(([k, text]) => `${k}: html=${JSON.stringify(text)} en=${JSON.stringify(catalog[k])}`).join('; '));
+
+  const titleDrift = [...titleFound.entries()].filter(([k, title]) => catalog[k] !== title);
+  check('data-i18n-title attribute text equals the English catalog value',
+    titleDrift.length === 0,
+    titleDrift.length === 0 ? 'all match' :
+      titleDrift.map(([k, title]) => `${k}: html=${JSON.stringify(title)} en=${JSON.stringify(catalog[k])}`).join('; '));
+}
+
+// ------------------------------------- structured-state formatters (render-time)
+// The capture title and status error stopped being pre-formatted strings; pin every
+// CaptureLabel variant and the StatusError join against the exact English the shell
+// rendered before externalization.
+
+{
+  const cases: [CaptureLabel, string][] = [
+    [{ kind: 'none' }, 'no capture'],
+    [{ kind: 'capturing', channels: 8, rate: 100e6 }, 'capturing 8 ch @ 100 MS/s'],
+    [{ kind: 'loaded', source: 'uart.sr @ 16 MSa/s, 16 probes', ms: 12 },
+      'uart.sr @ 16 MSa/s, 16 probes · loaded in 12 ms'],
+    [{ kind: 'stoppedNoTrigger', samples: 12345 }, 'no trigger · 12,345 samples retained'],
+    [{ kind: 'live', samples: 12345, rate: 100e6, seconds: 0.5 },
+      'live capture · 12,345 samples @ 100 MS/s · 500.0 ms'],
+  ];
+  const bad = cases.filter(([label, want]) => formatCaptureLabel(label) !== want);
+  check('formatCaptureLabel renders all five variants byte-identical to before',
+    bad.length === 0,
+    bad.length === 0 ? `${cases.length}/5 variants match`
+      : bad.map(([l, want]) => `${l.kind}: got ${JSON.stringify(formatCaptureLabel(l))} want ${JSON.stringify(want)}`).join('; '));
+}
+
+{
+  const plain = formatStatusError({ what: 'error.openCapture', detail: 'zip: bad' });
+  const withVars = formatStatusError({ what: 'error.decode', vars: { id: 'uart' }, detail: 'boom' });
+  check('formatStatusError joins translated prefix with raw diagnostic detail',
+    plain === 'open capture: zip: bad' && withVars === 'decode uart: boom',
+    `${JSON.stringify(plain)}, ${JSON.stringify(withVars)}`);
 }
 
 // ---------------------------------------------------------------------- report

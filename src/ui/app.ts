@@ -33,13 +33,17 @@ import { ChannelList, type ChannelCell } from './channelList.js';
 import {
   MAX_SAMPLES, levelAt, loadFiles, loadLwcap, saveLwcap,
 } from './captureIO.js';
-import { formatCount, formatDuration, formatFreq, formatRate } from './format.js';
+import { formatCount, formatDuration, formatFreq, formatRate,
+  formatCaptureLabel, formatStatusError } from './format.js';
+import { applyStaticI18n, getLocale, t,
+  type MessageKey, type MessageVars } from './i18n.js';
 import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
 import { Overlay, type HoverMeasurement } from './overlay.js';
 import { StoreRef } from './storeRef.js';
 import {
   analyzerColor, defaultChannels, channelColor,
   type AnalyzerState, type CaptureSettings, type ChannelState, type TriggerMode,
+  type CaptureLabel, type StatusError,
 } from './state.js';
 import { computeTicks, drawAxis, type TickSet } from './timeAxis.js';
 import { WaveformStack, type RowSpec } from './waveformStack.js';
@@ -96,8 +100,8 @@ export class App {
   /** Trigger sample position in SampleStore; the time axis labels this sample T=0. */
   private triggerSampleIndex: number | null = null;
 
-  private captureLabel = 'no capture';
-  private statusError = '';
+  private captureLabel: CaptureLabel = { kind: 'none' };
+  private statusError: StatusError | null = null;
   private decodeBusy = false;
   private decodeWarm = false;
   private abort: AbortController | null = null;
@@ -133,6 +137,11 @@ export class App {
       title: must<HTMLSpanElement>('capture-title'),
       fileInput: must<HTMLInputElement>('file-input'),
     };
+
+    // Static chrome (toolbar buttons, empty hint, rail tooltips) translates in place,
+    // and <html lang> follows the stored locale - both before the first paint.
+    document.documentElement.lang = getLocale();
+    applyStaticI18n(document);
 
     this.storeRef = new StoreRef(createSampleStore(16, 16e6));
     this.stack = new WaveformStack(this.el.waveStack, this.storeRef);
@@ -189,7 +198,7 @@ export class App {
     // including on file://; dev uses the staged files served by Vite.
     this.decodeClient.warmup().then(
       () => { this.decodeWarm = true; this.renderPanels(); },
-      (e: unknown) => this.fail('decode worker warmup', e),
+      (e: unknown) => this.fail('error.decodeWorkerWarmup', e),
     );
     void this.reconnectGranted();
   }
@@ -384,7 +393,7 @@ export class App {
     try {
       this.draw();
     } catch (e) {
-      this.fail('render', e);
+      this.fail('error.render', e);
     }
   };
 
@@ -839,15 +848,16 @@ export class App {
    * vanished mid-run.
    */
   private renderToolbarState(): void {
-    const t = this.el.transport;
-    t.textContent = this.stopping ? 'Stopping…' : this.running ? 'Stop' : 'Start';
-    t.className = this.running ? 'danger' : 'primary';
-    t.disabled = this.stopping || (!this.running && !this.device);
-    t.title = t.disabled
-      ? this.stopping ? 'Waiting for pending USB transfers to be cancelled'
-        : 'Connect a device first (rail: ◈)'
-      : this.running ? 'Stop the running capture' : 'Start a capture on the connected device';
-    this.el.title.textContent = this.captureLabel;
+    const btn = this.el.transport;
+    btn.textContent = this.stopping ? t('toolbar.stopping')
+      : this.running ? t('toolbar.stop') : t('toolbar.start');
+    btn.className = this.running ? 'danger' : 'primary';
+    btn.disabled = this.stopping || (!this.running && !this.device);
+    btn.title = btn.disabled
+      ? this.stopping ? t('toolbar.stoppingTitle')
+        : t('toolbar.connectFirstTitle')
+      : this.running ? t('toolbar.stopTitle') : t('toolbar.startTitle');
+    this.el.title.textContent = formatCaptureLabel(this.captureLabel);
   }
 
   private renderStatus(): void {
@@ -855,11 +865,11 @@ export class App {
     const view = this.stack.view;
     const sr = store.samplerate;
     const parts: string[] = [];
-    parts.push(this.captureLabel);
+    parts.push(formatCaptureLabel(this.captureLabel));
     if (store.length > 0) {
-      parts.push(`${formatCount(store.length)} samples @ ${formatRate(sr)}`);
-      parts.push(`${formatDuration(store.length / sr)} total`);
-      parts.push(`view ${formatDuration((view.end - view.start) / sr)}`);
+      parts.push(t('status.summary', { samples: formatCount(store.length), rate: formatRate(sr) }));
+      parts.push(t('status.total', { duration: formatDuration(store.length / sr) }));
+      parts.push(t('status.view', { duration: formatDuration((view.end - view.start) / sr) }));
     }
     // Cursor positions share the axis's origin: T=0 is the trigger sample when there
     // is one, so a pre-trigger cursor reads as the negative time the axis shows.
@@ -887,14 +897,16 @@ export class App {
     if (this.statusError) {
       const s = document.createElement('span');
       s.className = 'right err';
-      s.textContent = this.statusError;
+      s.textContent = formatStatusError(this.statusError);
       this.el.status.appendChild(s);
     }
   }
 
-  private fail(what: string, e: unknown): void {
+  private fail(what: MessageKey, e: unknown, vars?: MessageVars): void {
     const msg = e instanceof Error ? e.message : String(e);
-    this.statusError = `${what}: ${msg}`;
+    this.statusError = { what, ...(vars ? { vars } : {}), detail: msg };
+    // The console prefix is the stable message KEY, not the translated text -
+    // greppable in every locale.
     console.error(`[ui] ${what}`, e);
     this.dirty = true;
   }
@@ -907,7 +919,7 @@ export class App {
    * the user reads is the read loop's, not a teardown artefact.
    */
   private deviceFailed(e: unknown): void {
-    this.fail('device', e);
+    this.fail('error.device', e);
     if (this.running && !this.stopping) void this.stopCapture();
   }
 
@@ -915,17 +927,17 @@ export class App {
 
   private async openFiles(files: File[]): Promise<void> {
     try {
-      this.statusError = '';
+      this.statusError = null;
       const t0 = performance.now();
       const cap = await loadFiles(files);
       this.adoptCapture(cap.store, cap.channelNames,
-        `${cap.sourceDescription} · loaded in ${Math.round(performance.now() - t0)} ms`);
+        { kind: 'loaded', source: cap.sourceDescription, ms: Math.round(performance.now() - t0) });
     } catch (e) {
-      this.fail('open capture', e);
+      this.fail('error.openCapture', e);
     }
   }
 
-  private adoptCapture(store: SampleStore, names: string[], label: string): void {
+  private adoptCapture(store: SampleStore, names: string[], label: CaptureLabel): void {
     this.storeRef.set(store);
     this.channels = defaultChannels(store.channelCount);
     for (let i = 0; i < this.channels.length; i++) {
@@ -965,7 +977,7 @@ export class App {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
     } catch (e) {
-      this.fail('save', e);
+      this.fail('error.save', e);
     }
   }
 
@@ -984,13 +996,13 @@ export class App {
       this.renderPanels();
     } catch (e) {
       // Not fatal: the device may be claimed by sigrok-cli, or unplugged.
-      this.fail('reconnect', e);
+      this.fail('error.reconnect', e);
     }
   }
 
   private async connect(): Promise<void> {
     try {
-      this.statusError = '';
+      this.statusError = null;
       const d = await requestDeviceOnBestThread();
       d.onError = (e) => this.deviceFailed(e);
       this.device = d;
@@ -998,7 +1010,7 @@ export class App {
       this.adoptDeviceChannels(d);
       this.renderPanels();
     } catch (e) {
-      this.fail('connect', e);
+      this.fail('error.connect', e);
     }
   }
 
@@ -1047,9 +1059,9 @@ export class App {
 
   private async startCapture(): Promise<void> {
     if (this.running || this.stopping) return;
-    if (!this.device) { this.fail('start', new Error('no device connected')); return; }
+    if (!this.device) { this.fail('error.start', new Error('no device connected')); return; }
     try {
-      this.statusError = '';
+      this.statusError = null;
       const cfg: CaptureConfig = {
         channels: this.settings.channels,
         samplerate: this.settings.samplerate,
@@ -1079,7 +1091,7 @@ export class App {
         : MAX_SAMPLES - 1;
       this.captureLimitSamples = postTriggerSamples;
       this.triggerState = this.settings.softwareTrigger ? 'waiting' : 'off';
-      this.captureLabel = `capturing ${cfg.channels} ch @ ${formatRate(cfg.samplerate)}`;
+      this.captureLabel = { kind: 'capturing', channels: cfg.channels, rate: cfg.samplerate };
       this.running = true;
       this.relayout();
       // Show a window rather than the whole (empty) capture, and follow the live edge.
@@ -1133,7 +1145,7 @@ export class App {
         // `pos` is not the anchor, but it is a free cross-check on the invariant, and a
         // silent divergence here would misplace every gap in the capture. Reported once.
         if (pos !== store.length && this.lostSamples === 0) {
-          this.fail('dropout accounting',
+          this.fail('error.dropoutAccounting',
             new Error(`device counted ${pos} samples delivered, store holds ${store.length}`));
         }
         const n = appendLostSamples(store, missing, this.captureLimitSamples);
@@ -1184,7 +1196,7 @@ export class App {
       this.triggerState = 'off';
       this.triggerSampleIndex = null;
       this.relayout();
-      this.fail('start capture', e);
+      this.fail('error.startCapture', e);
       this.renderPanels();
     }
   }
@@ -1197,16 +1209,15 @@ export class App {
     try {
       await this.device?.stop();
     } catch (e) {
-      this.fail('stop capture', e);
+      this.fail('error.stopCapture', e);
     } finally {
       this.stopping = false;
     }
     this.setFollow(false);
     const sr = this.store.samplerate;
     this.captureLabel = this.triggerState === 'not-found'
-      ? `no trigger · ${formatCount(this.store.length)} samples retained`
-      : `live capture · ${formatCount(this.store.length)} samples @ ${formatRate(sr)} · ` +
-        `${formatDuration(this.store.length / sr)}`;
+      ? { kind: 'stoppedNoTrigger', samples: this.store.length }
+      : { kind: 'live', samples: this.store.length, rate: sr, seconds: this.store.length / sr };
     this.stack.zoomToFit();
     this.relayout();
     this.renderPanels();
@@ -1250,7 +1261,7 @@ export class App {
     if (!a) return;
     const store = this.store as CountingStore;
     try {
-      this.statusError = '';
+      this.statusError = null;
       if (store.length === 0) throw new Error('no capture to decode');
       // [src/decode/limits.ts] annotation spans are Int32Array, so 2^31-1 is a hard
       // ceiling - 10.7 s at 200 MSa/s, which this bench can actually reach.
@@ -1309,7 +1320,7 @@ export class App {
       a.message = e instanceof DecodeTimeoutError ? 'timed out'
         : e instanceof DecodeCancelledError ? 'cancelled'
           : e instanceof Error ? e.message : String(e);
-      this.fail(`decode ${a.decoderId}`, e);
+      this.fail('error.decode', e, { id: a.decoderId });
     } finally {
       this.decodeBusy = false;
       this.abort = null;
@@ -1414,8 +1425,8 @@ export class App {
       return true;
     },
     snapshot: () => ({
-      label: this.captureLabel,
-      error: this.statusError,
+      label: formatCaptureLabel(this.captureLabel),
+      error: this.statusError ? formatStatusError(this.statusError) : '',
       running: this.running,
       stopping: this.stopping,
       device: this.device?.name ?? null,

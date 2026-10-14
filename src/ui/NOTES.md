@@ -340,7 +340,7 @@ removes any directory, including ones it created itself.
 
 ## 11. i18n: catalogs, the core, and what is deliberately not translated
 
-The shell speaks more than English now. The mechanism is house-built (`src/ui/i18n.ts`
+The shell is being taught more than English. The mechanism is house-built (`src/ui/i18n.ts`
 + `src/ui/locales/<locale>.ts`), not a dependency: four locales do not make the case
 for i18next in a tree whose only runtime dependency is pyodide.
 
@@ -363,6 +363,14 @@ for i18next in a tree whose only runtime dependency is pyodide.
   absent or unknown stored values mean 'en'.
 - **The core is node-safe at module top level** (storage behind a typeof guard, no DOM
   touch outside functions) because the self-test bundles it for node.
+- **Session state that used to be pre-formatted English is structured data now.**
+  `captureLabel` (five shapes) and `statusError` are unions/records in state.ts,
+  formatted by `formatCaptureLabel` / `formatStatusError` (format.ts) at render time -
+  the only way a mid-session locale switch can retranslate them. `debug.snapshot()`
+  still returns the formatted strings, so the script contract is unchanged. The
+  console.error prefix in `fail()` is now the stable message KEY (`error.openCapture`
+  and friends), greppable in every locale; the status bar still shows the translated
+  prefix followed by the raw diagnostic detail.
 - **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
   descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
   `sourceDescription` (it is baked into .lwcap files at save time - translating it

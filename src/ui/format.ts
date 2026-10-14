@@ -23,6 +23,9 @@
  * without a fudge factor that would itself have to be justified.
  */
 
+import { t } from './i18n.js';
+import type { CaptureLabel, StatusError } from './state.js';
+
 const PS_PER = { s: 1e12, ms: 1e9, us: 1e6, ns: 1e3, ps: 1 } as const;
 type Unit = keyof typeof PS_PER;
 const UNITS: Unit[] = ['s', 'ms', 'us', 'ns', 'ps'];
@@ -137,4 +140,31 @@ export function formatBytes(n: number): string {
   if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(0)} kB`;
   return `${n} B`;
+}
+
+/**
+ * The capture title, formatted at render time from structured state so a locale
+ * switch retranslates it (state.ts explains why it is data, not a string).
+ * `loaded.source` passes through untranslated: it is file/user data.
+ */
+export function formatCaptureLabel(label: CaptureLabel): string {
+  switch (label.kind) {
+    case 'none': return t('capture.none');
+    case 'capturing':
+      return t('capture.capturing', { channels: label.channels, rate: formatRate(label.rate) });
+    case 'loaded': return t('capture.loaded', { source: label.source, ms: label.ms });
+    case 'stoppedNoTrigger':
+      return t('capture.stoppedNoTrigger', { samples: formatCount(label.samples) });
+    case 'live':
+      return t('capture.live', {
+        samples: formatCount(label.samples),
+        rate: formatRate(label.rate),
+        duration: formatDuration(label.seconds),
+      });
+  }
+}
+
+/** "open capture: <diagnostic>" - the prefix is chrome (translated), detail is payload. */
+export function formatStatusError(err: StatusError): string {
+  return `${t(err.what, err.vars)}: ${err.detail}`;
 }
