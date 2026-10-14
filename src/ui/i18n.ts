@@ -57,8 +57,9 @@ const DICTS: Partial<Record<Locale, Messages>> = { en };
  * One loader per non-default locale. The literal `import()` specifiers are what
  * make rollup emit one JS chunk per locale, fetched only when that language is
  * selected - the English catalog stays in the entry as the synchronous fallback.
- * (The portable single-file build will fold these chunks back into the entry -
- * see vite.config.ts - so `file://` performs no sibling import.)
+ * (The portable single-file build folds these chunks back into the entry via
+ * `inlineDynamicImports` - see vite.config.ts - so `file://` performs no sibling
+ * import.)
  */
 const LOADERS: Record<Exclude<Locale, 'en'>, () => Promise<Messages>> = {
   'zh-CN': () => import('./locales/zh-CN.js').then((m) => m.zhCN),

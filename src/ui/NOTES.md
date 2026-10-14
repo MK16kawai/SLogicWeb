@@ -360,7 +360,56 @@ for i18next in a tree whose only runtime dependency is pyodide.
 
 - **Default is English, deliberately not the browser's language** - the choice is only
   ever the user's explicit one, persisted in localStorage['logicweb.lang'] [CHOSEN];
-  absent or unknown stored values mean 'en'.
+  absent or unknown stored values mean 'en'. The stored locale is read by
+  `initLocale()` at boot, never at module evaluation.
+- **The non-English catalogs are code-split, not shipped in the entry chunk.** `en`
+  stays statically imported as the fallback, but zh-CN/ru/fr sit behind literal
+  `import()` specifiers in the `LOADERS` registry (`i18n.ts`) and reach the browser
+  only when that language is selected - a menu pick or a persisted preference.
+  `vite build` emits one chunk per locale at the **dist root** (`dist/zh-CN-*.js`,
+  `ru-*.js`, `fr-*.js`), not under `assets/`: `inlineEntryForFileOpen` inlines the
+  entry script into `index.html` in every build, so a relative dynamic-import
+  specifier resolves against the document URL, and an `assets/`-placed chunk would
+  be requested from `<origin-root>/<chunk>.js` and 404. [MEASURED] The split took
+  the entry from 594.53 kB / gzip 149.72 kB (after the loader seam landed) to
+  572.20 kB / gzip 143.46 kB, against a pre-task baseline of 593.53 kB / gzip
+  149.32 kB; the zh-CN/ru/fr chunks measure 7.07/9.82/7.68 kB. The
+  `chunkSizeWarningLimit: 500` warning predates i18n and stays deliberately
+  unsilenced. Known limitation: rollup renders the specifier as `../<chunk>.js`,
+  which is correct at the origin root and for the live `--base=/` build, but hosting
+  `dist/` below a sub-path breaks locale chunk loading (and a sub-path `--base`
+  crashes the inline plugin independently - pre-existing). Sub-path hosting needs a
+  coordinated fix (base-aware plugin, co-located entry/chunks, worker map
+  placement), not yet scheduled.
+- **`LOGICWEB_PORTABLE=1` folds every dynamic import back into the entry** via
+  `inlineDynamicImports`, so the single-file `index.html` performs no sibling
+  `file://` import. Laziness is lost there by design, and the setting is not
+  locale-specific: any FUTURE dynamic import is silently folded too. Locale
+  switching over `file://` was browser-verified (ru/fr/zh-CN/en all commit with zero
+  external requests; `check:portable`'s request capture shows only the document and
+  the Pyodide worker blob).
+- **Switching locale is asynchronous; the render path is not.** `setLocale(locale)`
+  resolves a `Promise<LocaleSwitchResult>` - `'committed'`, `'superseded'` (a newer
+  pick won; a normal race outcome, not an error), or `'failed'` (the catalog could
+  not load). A monotonic `requestToken` is bumped FIRST, so even picking the active
+  locale cancels an in-flight switch and the last pick always wins with exactly one
+  re-render; the check pass reproduced a settle-on-wrong-locale bug before this
+  ordering landed. `current` never names a locale whose catalog is absent from
+  `DICTS` (the load-before-commit invariant), and `t()` / `applyStaticI18n` keep
+  reading `DICTS` synchronously with English as the constructed fallback.
+  `initLocale()` preloads the persisted catalog before `new App()` so the first
+  render paints in it; `main.ts` boots through an async IIFE because Vite's default
+  target rejects top-level await. `App.debug.setLocale` returns that promise now, so
+  scripts must `await logicweb.debug.setLocale('fr')`.
+- **A failed catalog load is visible, not fatal.** The switch keeps the current
+  locale, warns to the console, and leaves the persisted choice intact so a transient
+  error retries next session; a menu pick surfaces it as `error.localeLoad` through
+  the ordinary status-error path (the detail half renders the locale id, e.g.
+  `...: fr`). A failure on a pick the user has already superseded stays silent.
+- **One known limitation: a persisted non-English locale can flash English static
+  chrome at boot.** Module scripts are deferred, so `data-i18n` markup can paint
+  before `initLocale()` resolves the persisted chunk; there is no fix short of
+  embedding the catalogs in the HTML.
 - **The core is node-safe at module top level** (storage behind a typeof guard, no DOM
   touch outside functions) because the self-test bundles it for node.
 - **Session state that used to be pre-formatted English is structured data now.**
@@ -398,6 +447,9 @@ for i18next in a tree whose only runtime dependency is pyodide.
 - **Four catalogs ship**: en (source of truth), zh-CN, ru, fr. tsc proves completeness
   (`: Messages`), and the self-test re-proves it at runtime (catching an `as Messages`
   cheat) plus a salient-probe check so a wholesale-untranslated catalog cannot pass.
+  It also drives the async path: per-locale loader object identity + key parity, an
+  fr round-trip, pick-current cancellation, and a superseded-pick single-notification
+  guard.
   Russian and French counts use the count-neutral "Noun: {n}" shape - plural rules are
   out of scope. Command syntax (`read 0x000c 4`), device mode names (USB MAX SPEED),
   and percent notation stay English in every catalog. End-to-end switching (menu pick,

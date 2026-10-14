@@ -25,8 +25,9 @@
  *   - the async catalog path: every locale loads through loadCatalog() to the very
  *     same catalog object as the static import (identity, not just key parity),
  *     setLocale() round-trips, a superseded pick resolves 'superseded' without
- *     notifying, and picking the currently-active locale still cancels an
- *     in-flight pick (the last-pick-wins race guard).
+ *     notifying, picking the currently-active locale still cancels an
+ *     in-flight pick (the last-pick-wins race guard), and a failed catalog
+ *     load resolves 'failed' while keeping the previous locale.
  *
  * Parity and the placeholder-set check are meaningful only now that a second
  * locale ships: with a single catalog they could never fail, and a tautological
@@ -441,6 +442,21 @@ const baseSettings: CaptureSettings = {
     r1 === 'superseded' && r2 === 'committed' && getLocale() === 'fr' && fired === 1,
     `p1=${r1}, p2=${r2}, locale=${getLocale()}, listener fired ${fired}×`);
   await setLocale('en'); // leave the suite settled on en
+}
+
+{
+  // Load-failure path: an out-of-contract locale name makes LOADERS[locale]() throw
+  // synchronously (not a function), and setLocale's catch must turn that into
+  // 'failed' while keeping the previous locale. The `as Locale` cast simulates a bad
+  // caller so the catch branch is exercised without a test-only loader seam (the same
+  // structural-typing trick as the Partial<Messages> fallback pin above). Without the
+  // catch the throw escapes and crashes the suite red; a commit despite the failure
+  // flips getLocale() -> FAIL.
+  const before = getLocale();
+  const r = await setLocale('xx' as Locale);
+  check('a failed catalog load keeps the previous locale',
+    r === 'failed' && getLocale() === before,
+    `result=${r}, locale=${getLocale()}`);
 }
 
 // ---------------------------------------------------------------------- report
