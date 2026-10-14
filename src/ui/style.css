@@ -228,12 +228,16 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .ch-trigger.active.triggered { background: #2f9e64; border-color: #2f9e64; }
 .ch-trigger.active.not-found { background: var(--negative); border-color: var(--negative); }
+/* Surface constants shared by the two overlay panels (provenance: the picker's
+   [MEASURED] values; one declaration so they cannot drift). */
+.trigger-inline-picker, .settings-menu, .settings-flyout {
+  background: var(--bg20); border: 1px solid var(--border-high); border-radius: 4px;
+  box-shadow: 0 5px 18px rgb(0 0 0 / 40%);
+}
 .trigger-inline-picker {
   position: fixed; z-index: 40; display: flex; gap: 3px; padding: 3px;
   transform: translate(22px, -50%) scaleX(0); transform-origin: left center;
   opacity: 0; pointer-events: none; transition: transform 140ms ease, opacity 100ms ease;
-  background: var(--bg20); border: 1px solid var(--border-high); border-radius: 4px;
-  box-shadow: 0 5px 18px rgb(0 0 0 / 40%);
 }
 .trigger-inline-picker.open { transform: translate(22px, -50%) scaleX(1); opacity: 1; pointer-events: auto; }
 .trigger-inline-option {
@@ -243,6 +247,36 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .trigger-inline-option:hover, .trigger-inline-option.selected { color: var(--text); border-color: var(--accent); background: var(--accent); }
 .trigger-inline-option svg { width: 24px; height: 16px; }
+
+/* ---------------------------------------------------------------- settings menu */
+
+/* z-index 40: the overlay layer the trigger picker already owns. No transform here -
+   the picker's scaleX entrance is glyph-picker-specific; this panel simply appears,
+   which also means close() removes it synchronously with no timer. */
+.settings-menu {
+  position: fixed; z-index: 40; padding: 3px;
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 150px;               /* [CHOSEN] one row plus the flyout hint stays readable */
+  max-width: calc(100vw - 16px);  /* narrow phones: never overflow the viewport */
+}
+.settings-flyout {
+  position: absolute;             /* child of the fixed menu: its offsetParent */
+  right: 100%;                    /* the menu is right-anchored, so fly out leftward */
+  padding: 3px;
+  display: flex; flex-direction: column; gap: 1px;
+  white-space: nowrap;
+}
+.settings-item {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 4px 8px;
+  background: none; border: 0; border-radius: 3px;
+  color: var(--text80); font: inherit; text-align: left; cursor: pointer;
+  white-space: nowrap;
+}
+/* Hover mirrors the toolbar buttons' --panel; --accent stays reserved for the check. */
+.settings-item:hover, .settings-item.open { background: var(--panel); color: var(--text); }
+.settings-check { width: 14px; flex: none; color: var(--accent); }
+.settings-hint { margin-left: auto; padding-left: 12px; color: var(--text50); }
 
 .ch-analyzer {
   display: flex;

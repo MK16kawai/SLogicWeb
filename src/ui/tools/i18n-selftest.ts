@@ -179,11 +179,11 @@ function check(name: string, pass: boolean, detail: string): void {
 
   const expectedText = [
     'toolbar.start', 'toolbar.open', 'toolbar.save', 'toolbar.fit',
-    'emptyHint.line1', 'emptyHint.line2',
+    'emptyHint.line1', 'emptyHint.line2', 'settings.title',
   ];
   const expectedTitles = [
     'toolbar.startTitle', 'toolbar.openTitle', 'toolbar.saveTitle', 'toolbar.fitTitle',
-    'rail.deviceTitle', 'rail.analyzersTitle',
+    'rail.deviceTitle', 'rail.analyzersTitle', 'settings.titleHint',
   ];
 
   const missingTextKeys = expectedText.filter((k) => !textFound.has(k));

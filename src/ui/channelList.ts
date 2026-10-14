@@ -232,7 +232,7 @@ export class ChannelList {
     if (event.key === 'Escape') this.closePicker();
   };
 
-  private closePicker(animate = true): void {
+  closePicker(animate = true): void {
     const picker = this.picker;
     this.picker = null;
     this.pickerAnchor = null;

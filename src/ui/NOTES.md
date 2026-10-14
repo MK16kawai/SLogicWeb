@@ -385,6 +385,16 @@ for i18next in a tree whose only runtime dependency is pyodide.
   and picker names, and the hover readout labels (`Width:`/`Freq:`/`Duty:`/
   `no transition in view`), all render through t() now; `width⁻¹` and the `D<n>`/
   `A`/`B`/`|B-A|` notations stay symbolic.
+- **The settings menu is a transient disclosure, not an ARIA menu.** Built on open,
+  destroyed on close (`settingsMenu.ts`), right-anchored via the CSS `right` property
+  (never measures its own width), its flyout a positioned CHILD of the menu so one
+  `contains()` answers click-outside for both. Its three document/window listeners are
+  open-scoped (events-and-lifecycle rule), it closes on resize and on locale change,
+  and only one overlay may be open: opening it dismisses the channel trigger picker.
+  The surface constants are shared with `.trigger-inline-picker` in one joint
+  declaration so the measured values cannot drift; the picker's scaleX entrance stays
+  picker-specific. Focus returns to the Settings button on Escape/pick, but an outside
+  click keeps the focus the user chose.
 - **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
   descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
   `sourceDescription` (it is baked into .lwcap files at save time - translating it

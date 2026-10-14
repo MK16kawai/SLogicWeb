@@ -35,8 +35,9 @@ import {
 } from './captureIO.js';
 import { formatCount, formatDuration, formatFreq, formatRate,
   formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from './format.js';
-import { applyStaticI18n, getLocale, t,
-  type MessageKey, type MessageVars } from './i18n.js';
+import { applyStaticI18n, getLocale, LOCALE_LABELS, LOCALES, onLocaleChange, setLocale, t,
+  type Locale, type MessageKey, type MessageVars } from './i18n.js';
+import { SettingsMenu, type SettingsMenuItem } from './settingsMenu.js';
 import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
 import { Overlay, type HoverMeasurement } from './overlay.js';
 import { StoreRef } from './storeRef.js';
@@ -65,6 +66,7 @@ export class App {
   private readonly channelList: ChannelList;
   private readonly capturePanel: CapturePanel;
   private readonly analyzerPanel: AnalyzerPanel;
+  private readonly settingsMenu: SettingsMenu;
   private readonly decodeClient = sharedDecodeClient({
     // Resolve from the document, not from the worker script. This supports static sites
     // hosted below a subdirectory and keeps all runtime files together in dist/.
@@ -143,6 +145,8 @@ export class App {
     document.documentElement.lang = getLocale();
     applyStaticI18n(document);
 
+    this.settingsMenu = new SettingsMenu(must<HTMLButtonElement>('btn-settings'));
+
     this.storeRef = new StoreRef(createSampleStore(16, 16e6));
     this.stack = new WaveformStack(this.el.waveStack, this.storeRef);
     this.overlay = new Overlay(this.el.plot);
@@ -183,6 +187,10 @@ export class App {
     this.wireToolbar();
     this.wirePlot();
     this.wireRail();
+
+    // A locale switch is a full re-render pass: every render path is clear-and-rebuild,
+    // so re-running them swaps the language with no stale strings anywhere.
+    onLocaleChange(() => this.retranslate());
 
     // Observe the scroll viewport, not the plot: the plot's height is now an *output*
     // of relayout (its canvases stack in normal flow so the rows can scroll), and
@@ -774,6 +782,40 @@ export class App {
       this.stack.zoomToFit();
       this.dirty = true;
     });
+    must<HTMLButtonElement>('btn-settings').addEventListener('click', () => {
+      // One overlay at a time: the trigger picker and this menu can never race on
+      // Escape when opening one dismisses the other.
+      this.channelList.closePicker();
+      this.settingsMenu.toggle(this.settingsItems());
+    });
+  }
+
+  /**
+   * The settings menu's content. Built fresh on every open, so the Language row's
+   * hint and the flyout's checkmark always reflect the current locale, and C6's extra
+   * locales appear with zero changes here - LOCALES/LOCALE_LABELS are the registry.
+   */
+  private settingsItems(): SettingsMenuItem[] {
+    return [
+      {
+        label: t('settings.language'),
+        hint: `${LOCALE_LABELS[getLocale()]} ▸`,
+        children: LOCALES.map((l) => ({
+          label: LOCALE_LABELS[l],
+          checked: l === getLocale(),
+          onPick: () => setLocale(l),
+        })),
+      },
+    ];
+  }
+
+  /** Re-render every string in the shell after a locale change. */
+  private retranslate(): void {
+    this.settingsMenu.close('retranslate');
+    applyStaticI18n(document);
+    this.relayout();       // channel cells (trigger summaries) rebuild here
+    this.renderPanels();   // side panels + toolbar chrome
+    this.renderStatus();   // status line
   }
 
   private wireRail(): void {
@@ -1346,6 +1388,8 @@ export class App {
    */
   readonly debug = {
     connect: () => this.connect(),
+    setLocale: (l: Locale) => setLocale(l),
+    getLocale: () => getLocale(),
     start: () => this.startCapture(),
     stop: () => this.stopCapture(),
     attach: (id: string, ch: Record<number, number>, opts: Record<string, string | number> = {}) =>
