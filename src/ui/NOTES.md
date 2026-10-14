@@ -378,6 +378,13 @@ for i18next in a tree whose only runtime dependency is pyodide.
   commands, device replies) is history and deliberately does not retranslate.
   Percent-notation option labels and glyphs (`×`, `···`, rail icons, `>` echo) are
   notation, not prose - they stay literal.
+- **`triggerSummary` moved to `formatTriggerSummary` in format.ts.** app.ts is not
+  node-importable, so the summary string could not be pinned by the self-test while it
+  lived there; format.ts is the display-formatting home and the move is a pure key
+  substitution, pinned with five exact cases. The channel list's tooltips, aria labels
+  and picker names, and the hover readout labels (`Width:`/`Freq:`/`Duty:`/
+  `no transition in view`), all render through t() now; `width⁻¹` and the `D<n>`/
+  `A`/`B`/`|B-A|` notations stay symbolic.
 - **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
   descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
   `sourceDescription` (it is baked into .lwcap files at save time - translating it

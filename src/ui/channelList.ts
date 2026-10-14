@@ -15,6 +15,7 @@
  */
 
 import { formatAnalyzerNote } from './format.js';
+import { t } from './i18n.js';
 import { COLORS } from './metrics.js';
 import { channelColor, type AnalyzerState, type ChannelState, type TriggerMode } from './state.js';
 
@@ -78,7 +79,7 @@ export class ChannelList {
       box.type = 'checkbox';
       box.className = 'ch-enable';
       box.checked = cell.channel.enabled;
-      box.title = cell.channel.enabled ? 'Disable this channel' : 'Enable this channel';
+      box.title = cell.channel.enabled ? t('channels.disable') : t('channels.enable');
       box.addEventListener('change', () => this.cb.onToggle(cell.channel.index, box.checked));
       head.appendChild(box);
 
@@ -92,7 +93,7 @@ export class ChannelList {
       name.className = 'ch-name';
       name.value = cell.channel.name;
       name.spellcheck = false;
-      name.title = 'Rename';
+      name.title = t('channels.rename');
       name.placeholder = '···';
       // Committing on blur and on Enter, not on every keystroke: a re-render on each
       // character would take the caret with it. An empty name is valid: the D-tag is
@@ -120,13 +121,15 @@ export class ChannelList {
       if (cell.trigger.active) trigger.classList.add(cell.trigger.state);
       trigger.replaceChildren(triggerIcon(cell.trigger.mode));
       trigger.title = cell.trigger.active
-        ? `${cell.trigger.summary}${cell.trigger.masked ? ' (Enable Mask off)' : ''}. Click to configure.`
-        : `Configure software trigger for D${cell.channel.index}`;
+        ? t(cell.trigger.masked ? 'channels.triggerTitleMasked' : 'channels.triggerTitle',
+          { summary: cell.trigger.summary })
+        : t('channels.triggerConfigure', { index: cell.channel.index });
       trigger.disabled = cell.trigger.disabled;
       trigger.setAttribute('aria-pressed', String(cell.trigger.active && !cell.trigger.masked));
       trigger.setAttribute('aria-label', cell.trigger.active
-        ? `${cell.trigger.summary}${cell.trigger.masked ? ', inactive because global Enable Mask is off' : ', active'}`
-        : `D${cell.channel.index} trigger: X, any value`);
+        ? t(cell.trigger.masked ? 'channels.triggerAriaMasked' : 'channels.triggerAriaActive',
+          { summary: cell.trigger.summary })
+        : t('channels.triggerAriaOff', { index: cell.channel.index }));
       trigger.addEventListener('click', (event) => {
         event.stopPropagation();
         this.openPicker(trigger, cell.channel.index, cell.trigger.mode);
@@ -150,7 +153,7 @@ export class ChannelList {
         const x = document.createElement('button');
         x.className = 'ch-analyzer-x';
         x.textContent = '×';
-        x.title = `Remove ${a.label}`;
+        x.title = t('channels.removeAnalyzer', { label: a.label });
         x.addEventListener('click', () => this.cb.onRemoveAnalyzer(a.id));
         chip.appendChild(x);
         chip.title = formatAnalyzerNote(a.note) || a.label;
@@ -187,11 +190,11 @@ export class ChannelList {
     const picker = document.createElement('div');
     picker.className = 'trigger-inline-picker';
     picker.setAttribute('role', 'radiogroup');
-    picker.setAttribute('aria-label', `Trigger condition for D${channel}`);
+    picker.setAttribute('aria-label', t('channels.triggerPickerAria', { index: channel }));
     const modes: readonly TriggerMode[] = ['falling', 'rising', 'high', 'low', 'dont-care'];
     const names: Record<TriggerMode, string> = {
-      falling: 'Falling edge', rising: 'Rising edge', high: 'High level',
-      low: 'Low level', 'dont-care': 'Any value (X)',
+      falling: t('trigger.falling'), rising: t('trigger.rising'), high: t('channels.triggerHigh'),
+      low: t('channels.triggerLow'), 'dont-care': t('channels.triggerAny'),
     };
     for (const mode of modes) {
       const option = document.createElement('button');

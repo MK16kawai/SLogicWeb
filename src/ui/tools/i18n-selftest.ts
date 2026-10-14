@@ -30,8 +30,8 @@ import { en, type Messages } from '../locales/en.js';
 import {
   formatMessage, getLocale, LOCALE_LABELS, LOCALES, pickLocale, t, translate,
 } from '../i18n.js';
-import { formatAnalyzerNote, formatCaptureLabel, formatStatusError } from '../format.js';
-import type { AnalyzerNote, CaptureLabel } from '../state.js';
+import { formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from '../format.js';
+import type { AnalyzerNote, CaptureLabel, CaptureSettings } from '../state.js';
 
 /** Same structural-typing trick as sr-selftest.ts: node access without @types/node. */
 const nodeProcess = (() => {
@@ -259,6 +259,34 @@ function check(name: string, pass: boolean, detail: string): void {
     bad.length === 0,
     bad.length === 0 ? `${cases.length}/7 variants match`
       : bad.map(([n, want]) => `${n.kind}: got ${JSON.stringify(formatAnalyzerNote(n))} want ${JSON.stringify(want)}`).join('; '));
+}
+
+// -------------------------------------------------------- trigger summary
+
+const baseSettings: CaptureSettings = {
+  channels: 16, samplerate: 16e6, thresholdVolts: 1.2, mode: 'timer', seconds: 1,
+  testMode: 0, triggerEnableMask: true, softwareTrigger: true, triggerModes: {},
+  triggerConditions: [], triggerChannel: 0,
+  triggerKind: 'rising', triggerLevel: 1, preTriggerPercent: 10,
+};
+
+{
+  const cases: [CaptureSettings, number, string][] = [
+    [{ ...baseSettings }, 0, 'Rising edge · 10% pre-trigger'],
+    [{ ...baseSettings, triggerKind: 'level', triggerLevel: 0 }, 0, 'Level 0 · 10% pre-trigger'],
+    [{ ...baseSettings, triggerKind: 'edge' }, 3, 'Any edge · 10% pre-trigger'],
+    [{ ...baseSettings, triggerConditions: [
+      { channel: 2, kind: 'falling', level: 1 }, { channel: 3, kind: 'level', level: 1 }] }, 2,
+      'Falling edge · 10% pre-trigger · AND 2 conditions'],
+    [{ ...baseSettings, triggerConditions: [
+      { channel: 2, kind: 'falling', level: 1 }, { channel: 3, kind: 'level', level: 1 }] }, 3,
+      'Level 1 · 10% pre-trigger · AND 2 conditions'],
+  ];
+  const bad = cases.filter(([s, ch, want]) => formatTriggerSummary(s, ch) !== want);
+  check('formatTriggerSummary renders conditions and the AND suffix exactly',
+    bad.length === 0,
+    bad.length === 0 ? `${cases.length}/5 cases match`
+      : bad.map(([s, ch, want]) => `ch${ch}: got ${JSON.stringify(formatTriggerSummary(s, ch))} want ${JSON.stringify(want)}`).join('; '));
 }
 
 // ---------------------------------------------------------------------- report

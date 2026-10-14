@@ -24,7 +24,7 @@
  */
 
 import { t } from './i18n.js';
-import type { AnalyzerNote, CaptureLabel, StatusError } from './state.js';
+import type { AnalyzerNote, CaptureLabel, CaptureSettings, StatusError } from './state.js';
 
 const PS_PER = { s: 1e12, ms: 1e9, us: 1e6, ns: 1e3, ps: 1 } as const;
 type Unit = keyof typeof PS_PER;
@@ -167,6 +167,27 @@ export function formatCaptureLabel(label: CaptureLabel): string {
 /** "open capture: <diagnostic>" - the prefix is chrome (translated), detail is payload. */
 export function formatStatusError(err: StatusError): string {
   return `${t(err.what, err.vars)}: ${err.detail}`;
+}
+
+/**
+ * The channel-row trigger summary ("Rising edge · 10% pre-trigger · AND 2 conditions").
+ * Lives here, not in app.ts, so the i18n self-test can pin it under node (app.ts is
+ * not node-importable) and so a locale switch retranslates it like every other
+ * render-time string.
+ */
+export function formatTriggerSummary(s: CaptureSettings, channel: number): string {
+  const c = s.triggerConditions.find((x) => x.channel === channel);
+  const kind = c?.kind ?? s.triggerKind;
+  const level = c?.level ?? s.triggerLevel;
+  const condition = kind === 'level'
+    ? t('trigger.level', { level })
+    : kind === 'rising' ? t('trigger.rising')
+      : kind === 'falling' ? t('trigger.falling')
+        : t('trigger.anyEdge');
+  const total = s.triggerConditions.length;
+  return total > 1
+    ? t('trigger.summaryAnd', { condition, pct: s.preTriggerPercent, count: total })
+    : t('trigger.summary', { condition, pct: s.preTriggerPercent });
 }
 
 /**

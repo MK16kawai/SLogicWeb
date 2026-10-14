@@ -34,7 +34,7 @@ import {
   MAX_SAMPLES, levelAt, loadFiles, loadLwcap, saveLwcap,
 } from './captureIO.js';
 import { formatCount, formatDuration, formatFreq, formatRate,
-  formatAnalyzerNote, formatCaptureLabel, formatStatusError } from './format.js';
+  formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from './format.js';
 import { applyStaticI18n, getLocale, t,
   type MessageKey, type MessageVars } from './i18n.js';
 import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
@@ -277,7 +277,7 @@ export class App {
           mode: this.settings.triggerModes[c.index] ?? 'dont-care',
           disabled: this.running || this.stopping,
           state: this.triggerState,
-          summary: triggerSummary(this.settings, c.index),
+          summary: formatTriggerSummary(this.settings, c.index),
         },
       });
     }
@@ -727,17 +727,17 @@ export class App {
       const width = (next - prev) / sr;
       widthX0 = this.toPx(prev);
       widthX1 = this.toPx(next);
-      lines.push(`Width: ${formatDuration(width)}`);
-      lines.push(`width⁻¹: ${formatFreq(1 / width)}`);
+      lines.push(t('hover.width', { duration: formatDuration(width) }));
+      lines.push(t('hover.widthInv', { freq: formatFreq(1 / width) }));
       if (next2 >= 0) {
         const period = (next2 - prev) / sr;
         periodX0 = this.toPx(prev);
         periodX1 = this.toPx(next2);
-        lines.unshift(`Freq: ${formatFreq(1 / period)}`);
-        lines.unshift(`Duty: ${((width / period) * 100).toFixed(2)} %`);
+        lines.unshift(t('hover.freq', { freq: formatFreq(1 / period) }));
+        lines.unshift(t('hover.duty', { pct: ((width / period) * 100).toFixed(2) }));
       }
     } else {
-      lines.push('no transition in view');
+      lines.push(t('hover.noTransition'));
     }
 
     this.hover = {
@@ -1520,21 +1520,6 @@ function modesToConditions(modes: Record<number, TriggerMode>): CaptureSettings[
     if (mode === 'low' || mode === 'high') return [{ channel, kind: 'level' as const, level: mode === 'high' ? 1 as const : 0 as const }];
     return [{ channel, kind: mode, level: 1 as const }];
   });
-}
-
-function triggerSummary(s: CaptureSettings, channel: number): string {
-  const c = s.triggerConditions.find((x) => x.channel === channel);
-  const kind = c?.kind ?? s.triggerKind;
-  const level = c?.level ?? s.triggerLevel;
-  const condition = kind === 'level'
-    ? `Level ${level}`
-    : kind === 'rising'
-      ? 'Rising edge'
-      : kind === 'falling'
-        ? 'Falling edge'
-        : 'Any edge';
-  const total = s.triggerConditions.length;
-  return `${condition} · ${s.preTriggerPercent}% pre-trigger${total > 1 ? ` · AND ${total} conditions` : ''}`;
 }
 
 /** Configuration edits describe a future capture; they must not leave the previous
