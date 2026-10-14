@@ -28,9 +28,6 @@
  */
 
 import { en, type Messages } from './locales/en.js';
-import { fr } from './locales/fr.js';
-import { ru } from './locales/ru.js';
-import { zhCN } from './locales/zh-CN.js';
 
 /** The shipping locales. `en` first: it is the default and the fallback. */
 export const LOCALES = ['en', 'zh-CN', 'ru', 'fr'] as const;
@@ -57,15 +54,16 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 const DICTS: Partial<Record<Locale, Messages>> = { en };
 
 /**
- * One loader per non-default locale. The literal `import()` specifiers that make
- * rollup emit one chunk per locale arrive in the next commit; the wrappers here
- * are TEMPORARY and resolve the still-statically-imported catalogs, so this
- * commit's bundle composition is unchanged.
+ * One loader per non-default locale. The literal `import()` specifiers are what
+ * make rollup emit one JS chunk per locale, fetched only when that language is
+ * selected - the English catalog stays in the entry as the synchronous fallback.
+ * (The portable single-file build will fold these chunks back into the entry -
+ * see vite.config.ts - so `file://` performs no sibling import.)
  */
 const LOADERS: Record<Exclude<Locale, 'en'>, () => Promise<Messages>> = {
-  'zh-CN': () => Promise.resolve(zhCN),
-  ru: () => Promise.resolve(ru),
-  fr: () => Promise.resolve(fr),
+  'zh-CN': () => import('./locales/zh-CN.js').then((m) => m.zhCN),
+  ru: () => import('./locales/ru.js').then((m) => m.ru),
+  fr: () => import('./locales/fr.js').then((m) => m.fr),
 };
 
 /** In-flight load promises, so a repeated pick issues one load per locale. */

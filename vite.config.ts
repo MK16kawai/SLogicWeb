@@ -223,7 +223,26 @@ export default defineConfig({
     // in DevTools when diagnosing USB/decoder issues on a user's machine.
     sourcemap: true,
     chunkSizeWarningLimit: portable ? 20_000 : 500,
-    rollupOptions: { output: { banner: BANNER } },
+    rollupOptions: {
+      output: {
+        banner: BANNER,
+        // The inlineEntryForFileOpen plugin inlines the entry script into
+        // dist/index.html in EVERY build, so a relative dynamic-import
+        // specifier resolves against the document URL, not against assets/.
+        // Locale chunks must therefore sit at the dist root: emitted under the
+        // default assets/[name]-[hash].js they would be requested from
+        // <origin-root>/<chunk>.js and 404. Today the locale catalogs are the only
+        // dynamic imports, so nothing else lands at the root for this reason.
+        // Caveat: rollup renders the specifier relative to the entry chunk, so it
+        // is emitted as "../<chunk>.js". That resolves correctly for the deployments
+        // that work today (dist/ at the origin root; the live --base=/ custom-domain
+        // build) but escapes the base when dist/ is hosted below a sub-path. Fixing
+        // sub-path hosting is a separate, coordinated change (the plugin must become
+        // base-aware - it currently crashes on a sub-path base even without this
+        // commit - plus co-located entry/chunks and matching worker map placement).
+        chunkFileNames: '[name]-[hash].js',
+      },
+    },
   },
 
   plugins: [requireRuntimeAssets(), emitLicense(), inlineEntryForFileOpen()],
