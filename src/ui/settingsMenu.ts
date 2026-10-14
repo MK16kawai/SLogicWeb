@@ -46,10 +46,6 @@ export class SettingsMenu {
 
   constructor(private readonly anchor: HTMLButtonElement) {}
 
-  get isOpen(): boolean {
-    return this.menu !== null;
-  }
-
   toggle(items: readonly SettingsMenuItem[]): void {
     if (this.menu) this.close('toggle');
     else this.open(items);

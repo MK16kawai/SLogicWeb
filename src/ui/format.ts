@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Daniel Tralamazza
 /**
- * Time and frequency formatting for the axis and the readouts.
+ * Display formatting for the shell: time/frequency/rate/count formatting for the
+ * axis and readouts, plus the render-time formatters for structured UI state
+ * (CaptureLabel, StatusError, AnalyzerNote, and the trigger summary) - state is
+ * stored as data so a locale switch can retranslate it, and these functions turn it
+ * into the current locale's strings with t().
  *
  * The axis label format is distinctive enough that a critic will spot a mismatch
  * immediately, and it is specified exactly here:

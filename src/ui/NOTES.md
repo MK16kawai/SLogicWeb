@@ -403,7 +403,11 @@ for i18next in a tree whose only runtime dependency is pyodide.
   and percent notation stay English in every catalog. End-to-end switching (menu pick,
   reload persistence, `<html lang>`, corrupt-storage fallback, byte-identical English
   restoration) was exercised with headless-Chrome CDP drives during development;
-  those drives are throwaway scripts, not committed tooling.
+  those drives are throwaway scripts, not committed tooling. One known limit: the
+  hover readout's lines are formatted when the hover is taken, so a scripted
+  locale switch with an active hover keeps the old language until the next hover -
+  unreachable through the UI itself, because moving the pointer to the toolbar fires
+  pointerleave on the plot and clears the hover.
 - **Not translated, on purpose**: SI/number formatting (format.ts), decoder names and
   descriptions (sigrok metadata), diagnostic error payloads after the chrome prefix,
   `sourceDescription` (it is baked into .lwcap files at save time - translating it

@@ -18,12 +18,14 @@
  *     incomplete dict is a Partial<Messages> cast, so the Messages type itself stays
  *     intact;
  *   - the English catalog itself is sane: non-empty, no empty values, balanced
- *     braces, well-formed placeholder names.
+ *     braces, well-formed placeholder names, and every other catalog repeats that
+ *     sanity with the same `{var}` name set per key (a typoed placeholder fails);
+ *   - catalog key parity across locales holds at runtime, and each locale really
+ *     translates the salient probe keys.
  *
- * Catalog key PARITY across locales is deliberately absent here: with a single
- * locale it could never fail, and a tautological check is worse than none
- * (.trellis/spec/frontend/quality-guidelines.md §3). It arrives with the second
- * catalog in the translations commit.
+ * Parity and the placeholder-set check are meaningful only now that a second
+ * locale ships: with a single catalog they could never fail, and a tautological
+ * check is worse than none (.trellis/spec/frontend/quality-guidelines.md §3).
  */
 
 import { en, type Messages } from '../locales/en.js';
@@ -146,6 +148,37 @@ function check(name: string, pass: boolean, detail: string): void {
   }).map(([k]) => k);
   check('every template has balanced, well-formed {placeholders}',
     bad.length === 0, bad.length === 0 ? 'all templates well-formed' : bad.join(', '));
+}
+
+{
+  // The same sanity for every shipping catalog: a translated template with a typoed
+  // {var} would pass tsc and key parity, then render the literal braces at the user.
+  const dicts: [string, Messages][] = [['zh-CN', zhCN], ['ru', ru], ['fr', fr]];
+  const enVars = (k: keyof Messages): string =>
+    [...en[k].matchAll(/\{(\w+)\}/g)].map((m) => m[1]!).sort().join(',');
+  const bad: string[] = [];
+  for (const [locale, dict] of dicts) {
+    for (const k of Object.keys(en) as (keyof Messages)[]) {
+      // A catalog that cheated with `as Messages` can be key-incomplete at runtime;
+      // report that as this check's failure instead of throwing out of the loop and
+      // losing every earlier result (the parity check below catches the same cheat).
+      const v: string | undefined = dict[k];
+      if (v === undefined) { bad.push(`${locale}:${k} missing`); continue; }
+      const opens = (v.match(/\{/g) ?? []).length;
+      const closes = (v.match(/\}/g) ?? []).length;
+      if (opens !== closes) { bad.push(`${locale}:${k} unbalanced`); continue; }
+      const stripped = v.replace(/\{\w+\}/g, '');
+      if (stripped.includes('{') || stripped.includes('}')) {
+        bad.push(`${locale}:${k} malformed placeholder`);
+        continue;
+      }
+      const vars = [...v.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!).sort().join(',');
+      if (vars !== enVars(k)) bad.push(`${locale}:${k} vars {${vars}} != en {${enVars(k)}}`);
+    }
+  }
+  check('every catalog keeps balanced braces and the en placeholder set per key',
+    bad.length === 0,
+    bad.length === 0 ? 'all 3 catalogs well-formed with matching {vars}' : bad.join('; '));
 }
 
 {
