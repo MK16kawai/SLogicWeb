@@ -241,6 +241,11 @@ export default defineConfig({
         // base-aware - it currently crashes on a sub-path base even without this
         // commit - plus co-located entry/chunks and matching worker map placement).
         chunkFileNames: '[name]-[hash].js',
+        // The portable build inlines the entry into index.html, deletes every
+        // sibling executable file, and is opened over file:// - where a
+        // separate chunk import cannot work. Folding dynamic imports back into
+        // the entry keeps the single-file artifact intact and self-contained.
+        ...(portable ? { inlineDynamicImports: true } : {}),
       },
     },
   },
