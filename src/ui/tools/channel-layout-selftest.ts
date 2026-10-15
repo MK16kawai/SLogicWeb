@@ -93,6 +93,40 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
   check('App.relayout delegates to the tested policy without a duplicate clamp',
     importsPolicy && delegates && !duplicateClamp,
     `import=${importsPolicy}, delegates=${delegates}, duplicateClamp=${duplicateClamp}`);
+
+  const channelList = fs.readFileSync('src/ui/channelList.ts', 'utf8');
+  const rowStart = channelList.indexOf('export class ChannelList');
+  const rowSource = channelList.slice(rowStart, channelList.indexOf('function triggerModeName'));
+  const dialogSource = channelList.slice(0, rowStart);
+  const rowSimplified = !rowSource.includes('ch-enable') && !rowSource.includes('ch-trigger') &&
+    !rowSource.includes("const name = document.createElement('input')");
+  const readOnlyEntry = rowSource.includes("const name = document.createElement('span')") &&
+    rowSource.includes("name.textContent = cell.channel.name") &&
+    rowSource.includes("settings.className = 'ch-settings'") &&
+    rowSource.includes('this.settingsDialog.open(settings, cell)');
+  check('channel rows keep only a read-only name and gear settings entry',
+    rowStart >= 0 && rowSimplified && readOnlyEntry,
+    `rowStart=${rowStart}, simplified=${rowSimplified}, readOnlyEntry=${readOnlyEntry}`);
+
+  const exactModes = "const TRIGGER_MODES: readonly TriggerMode[] = ['falling', 'rising', 'high', 'low', 'dont-care'];";
+  const nativeModal = dialogSource.includes("document.createElement('dialog')") &&
+    dialogSource.includes('this.dialog.showModal();') &&
+    dialogSource.includes("this.dialog.setAttribute('aria-labelledby', 'channel-settings-title')");
+  const oneSavePath = dialogSource.includes("form.addEventListener('submit', this.onSubmit)") &&
+    dialogSource.includes('this.onConfigure(channel, config);') &&
+    dialogSource.includes('this.onSaved(channel);');
+  check('channel dialog uses one native-modal save path with all five modes',
+    dialogSource.includes(exactModes) && nativeModal && oneSavePath,
+    `modes=${dialogSource.includes(exactModes)}, native=${nativeModal}, save=${oneSavePath}`);
+
+  const noGlobalListeners = !channelList.includes('document.addEventListener') &&
+    !channelList.includes('window.addEventListener');
+  const discardPaths = dialogSource.includes("this.dialog.addEventListener('cancel'") &&
+    dialogSource.includes('if (event.target === this.dialog) this.dismiss(true);') &&
+    dialogSource.includes("this.cancelButton.addEventListener('click', () => this.dismiss(true))");
+  check('dialog dismissal paths need no document or window listeners',
+    noGlobalListeners && discardPaths,
+    `noGlobalListeners=${noGlobalListeners}, discardPaths=${discardPaths}`);
 }
 
 console.log(results.map((r) => `${r.pass ? 'PASS' : 'FAIL'}  ${r.name}\n        ${r.detail}`).join('\n'));

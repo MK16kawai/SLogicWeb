@@ -353,7 +353,11 @@ const baseSettings: CaptureSettings = {
   // Assert the PROPERTY (translated ≠ English) on salient keys, not exact wording, so a
   // legitimate rewording does not break the check. A locale missing from `dicts` is a
   // clean FAIL, not a crash.
-  const probes: (keyof Messages)[] = ['toolbar.start', 'settings.language', 'settings.theme'];
+  const probes: (keyof Messages)[] = [
+    'toolbar.start', 'settings.language', 'settings.theme',
+    'channels.settings', 'channels.dialogDescription', 'channels.name',
+    'channels.triggerMode', 'channels.cancel',
+  ];
   const dicts: Record<string, Messages | undefined> = { 'zh-CN': zhCN, ru, fr };
   const bad: string[] = [];
   for (const l of LOCALES) {

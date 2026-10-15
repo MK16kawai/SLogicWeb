@@ -672,6 +672,25 @@ listeners, closes before row re-renders, and refreshes every translated string o
 Earlier inline-trigger descriptions in sections 6 and 11-13 are historical; this
 section describes the current interaction.
 
-**Validation pending.** The Pair-1 self-test and real-browser checks have not run yet.
-They must cover row structure, vertical centering, modal focus/inertness, every close
-path, trigger mapping and capture-time locking before any result is marked HELD.
+**Result: HELD.** [MEASURED] in headless Chrome at 1280x800 and 500x700 through the
+shipping DOM. All 26 browser checks passed: 16 rows had no inputs, their names were
+read-only spans, and every 18 px gear was exactly centered in an 18 px head. The dialog
+matched `:modal`, received initial name-input focus, exposed five radios, and returned
+focus to the gear after Save, Cancel and Escape. Save trimmed names and preserved an
+empty name; Cancel, Escape and a real backdrop click discarded drafts. All five modes
+preserved their condition mapping, the other channel's AND condition, Enable Mask and
+the 25% pre-trigger setting. Digital-chip disable/re-enable, reorder callbacks and all
+four locale titles also passed. The narrow scene kept 48 px label/waveform rows,
+centering and zero horizontal overflow, with no uncaught page error.
+
+Running and stopping were injected separately as browser-state preconditions, then the
+ordinary settings render path and actual dialog/save path were used. In both states the
+trigger field set was disabled while the name input and gear stayed enabled; Save
+changed the name but retained the stored mode. This proves the UI state guard, not a
+hardware capture lifecycle.
+
+The node suites also passed: 12/12 channel-layout checks (nine layout checks plus three
+source-integrity guards for row structure, native-modal save and listener-free close
+paths), 27/27 i18n checks with the new labels added to the translated-probe set, and
+`tsc --noEmit`. No decoder was attached in this pass, so annotation-lane alignment is
+covered by the existing layout checks rather than a new decoded browser scene.
