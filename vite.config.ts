@@ -35,6 +35,23 @@ function lanServer(port: number): ServerOptions {
   };
 }
 
+function serveUiControlEntry(): Plugin {
+  return {
+    name: 'logicweb:uictrl-entry',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((request, _response, next) => {
+        const url = request.url;
+        if (url === '/uictrl') request.url = '/uictrl/';
+        else if (url?.startsWith('/uictrl?')) {
+          request.url = `/uictrl/${url.slice('/uictrl'.length)}`;
+        }
+        next();
+      });
+    },
+  };
+}
+
 /*
  * Fail the build when a run-time asset is missing, rather than shipping a bundle that
  * looks fine and 404s on first use.
@@ -250,5 +267,5 @@ export default defineConfig({
     },
   },
 
-  plugins: [requireRuntimeAssets(), emitLicense(), inlineEntryForFileOpen()],
+  plugins: [serveUiControlEntry(), requireRuntimeAssets(), emitLicense(), inlineEntryForFileOpen()],
 });
