@@ -13,21 +13,27 @@
   -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <!--
-    Pre-paint theme restore: applies the persisted theme before the stylesheet loads,
-    so a dark session never flashes the default chrome first. Source of truth is
-    src/ui/theme.ts (THEME_STORAGE_KEY, THEMES) - the theme self-test
-    (src/ui/tools/theme-selftest.ts) pins this literal so the two cannot drift.
-    Anything but the exact id 'dark' (absent, garbage, or a throwing storage) means
-    the default theme, exactly like pickTheme(). A bare inline script on purpose:
-    vite.config.ts's inlineEntryForFileOpen only rewrites module scripts and the
-    stylesheet link, so this passes the portable single-file build untouched.
+    Pre-paint theme apply: dark is the default theme, so this sets data-theme="dark"
+    before the stylesheet loads and no session can flash the light chrome first.
+    Mirrors pickTheme() in src/ui/theme.ts: a stored live id wins; absent, garbage,
+    and the migrated legacy 'default' pick all land on dark - with today's registry
+    every path does. The storage read is real, not decorative: the theme self-test
+    (src/ui/tools/theme-selftest.ts) pins the getItem literal so this script and
+    pickTheme() cannot drift, and a future added theme id turns the honor check into
+    a real branch. A bare inline script on purpose: vite.config.ts's
+    inlineEntryForFileOpen only rewrites module scripts and the stylesheet link, so
+    this passes the portable single-file build untouched.
   -->
   <script>
     try {
-      if (localStorage.getItem('logicweb.theme') === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    } catch { /* storage unavailable (privacy mode): stay on the default theme */ }
+      // pickTheme() mirror: honor a stored live id, else the dark default. 'default'
+      // is retired (migrates to dark), so 'dark' is the only live stored id today.
+      const stored = localStorage.getItem('logicweb.theme');
+      document.documentElement.setAttribute('data-theme', stored === 'dark' ? stored : 'dark');
+    } catch {
+      // Storage unavailable (privacy mode): pickTheme's fallback is dark too.
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
   </script>
   <link rel="stylesheet" href="/src/ui/style.css" />
 </head>
