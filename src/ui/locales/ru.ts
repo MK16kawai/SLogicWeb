@@ -169,4 +169,8 @@ export const ru: Messages = {
   'settings.title': 'Настройки',
   'settings.titleHint': 'Язык и параметры отображения',
   'settings.language': 'Язык',
+
+  // ------------------------------------------------------------ theme
+  'theme.default': 'По умолчанию',
+  'theme.dark': 'Тёмная',
 };

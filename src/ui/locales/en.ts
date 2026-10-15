@@ -173,6 +173,10 @@ export const en = {
   'settings.title': 'Settings',
   'settings.titleHint': 'Language and display preferences',
   'settings.language': 'Language',
+
+  // ------------------------------------------------------------ theme
+  'theme.default': 'Default',
+  'theme.dark': 'Dark',
 };
 
 /**

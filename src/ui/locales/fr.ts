@@ -169,4 +169,8 @@ export const fr: Messages = {
   'settings.title': 'Paramètres',
   'settings.titleHint': 'Langue et préférences d’affichage',
   'settings.language': 'Langue',
+
+  // ------------------------------------------------------------ theme
+  'theme.default': 'Par défaut',
+  'theme.dark': 'Sombre',
 };
