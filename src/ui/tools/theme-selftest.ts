@@ -25,7 +25,10 @@
  *     THEME_STORAGE_KEY's actual value (renaming the key on either side turns this red);
  *   - style.css keeps every dark rule scoped to [data-theme="dark"] and never
  *     redefines the chrome metric variables inside a dark block (vacuous until the
- *     token layer lands, load-bearing from then on).
+ *     token layer lands, load-bearing from then on);
+ *   - the channel-card geometry stays wired: neutral display:contents wrappers, the
+ *     dark card's --ch-lane-offset margin, the reserved 14px decoder strip, the
+ *     themed scrollbars, and the TS side that sets/feeds the property (NOTES §13).
  *
  * The checks are ordered fresh-state first, mutation next: checks 5-8 inject fake
  * localStorage/document globals, so an earlier check must not observe them. Checks
@@ -257,6 +260,35 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
     defaultScopes.length === 0 && offenders.length === 0,
     `darkBlocks=${darkBlocks}, defaultScopes=${defaultScopes.length}, ` +
     `metricOffenders=${offenders.join(',') || '(none)'}${darkBlocks === 0 ? ' (vacuous until the token layer lands)' : ''}`);
+}
+
+// ------------------------------------------- channel-card geometry guards (check 11)
+
+// The waveform-table cards (NOTES.md section 13) hang on a few load-bearing threads:
+// the wrappers stay display:contents in the base layer (else the default theme
+// moves), the dark card reads --ch-lane-offset (else decoded channels grow again),
+// the reserved strip keeps its measured min-height, and the TS side actually sets
+// the property. Each needle would turn red on the drift that removes it.
+{
+  const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+  if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
+  const css = fs.readFileSync('src/ui/style.css', 'utf8');
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  const baseNeutral = /\.ch-card, \.ch-analyzers\s*\{\s*display:\s*contents/.test(code);
+  const laneMargin = /html\[data-theme="dark"\] \.ch-card\s*\{[^}]*margin-top:\s*var\(--ch-lane-offset, 0px\)/.test(code);
+  const stripReserved = /html\[data-theme="dark"\] \.ch-analyzers\s*\{[^}]*min-height:\s*14px/.test(code);
+  const scrollbars = /html\[data-theme="dark"\] #scroll-area,\s*html\[data-theme="dark"\] #side-panel\s*\{[^}]*scrollbar-width:\s*thin/.test(code);
+
+  const channelList = fs.readFileSync('src/ui/channelList.ts', 'utf8');
+  const tsSetsProperty = channelList.includes("setProperty('--ch-lane-offset'");
+  const app = fs.readFileSync('src/ui/app.ts', 'utf8');
+  const appFeedsLane = app.includes('laneCss:');
+
+  check('channel-card geometry: neutral base wrappers, lane-offset margin, reserved strip, scrollbars, TS plumbing',
+    baseNeutral && laneMargin && stripReserved && scrollbars && tsSetsProperty && appFeedsLane,
+    `neutral=${baseNeutral}, laneMargin=${laneMargin}, strip=${stripReserved}, ` +
+    `scrollbars=${scrollbars}, tsSets=${tsSetsProperty}, appFeeds=${appFeedsLane}`);
 }
 
 // ---------------------------------------------------------------------- report
