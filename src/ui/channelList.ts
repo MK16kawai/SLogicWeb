@@ -170,7 +170,12 @@ class ChannelSettingsDialog {
     this.dialog.addEventListener('pointerdown', (event) => {
       // With a zero-padding dialog, only the backdrop targets the dialog itself; the
       // form and every child keep their ordinary pointer behavior.
-      if (event.target === this.dialog) this.dismiss(true);
+      if (event.target === this.dialog) {
+        // Do not let the completed click retarget focus to the underlying document after
+        // the pointerdown handler has restored it to the channel's settings button.
+        event.preventDefault();
+        this.dismiss(true);
+      }
     });
   }
 

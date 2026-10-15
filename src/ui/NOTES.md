@@ -759,6 +759,10 @@ required visible title: the description element, ARIA relationship, dead CSS and
 and vertical field class in this pair. No trigger mapping, channel color, App state or
 row-pitch code changed.
 
+**Repair, before the focus rerun.** The first real-mouse backdrop check discarded the
+draft but left focus on `body`: preventing the backdrop pointerdown's default action is
+necessary so the completed click cannot retarget focus after the handler restores it.
+
 **Validation pending.** Exact node guards and desktop/narrow Chrome geometry must prove
 the two KV rows, the stacked last color field, complete description removal and no
 horizontal overflow. Name edits and every existing Save/Cancel/Escape/backdrop path must
