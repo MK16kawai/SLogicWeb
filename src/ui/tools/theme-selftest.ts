@@ -223,9 +223,14 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
   const css = fs.readFileSync('src/ui/style.css', 'utf8');
 
+  // Comments can mention the dark selector (the token-layer header does), and a naive
+  // scan would then attribute the NEXT block's declarations to it. Strip comments
+  // first so only real rules are examined.
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
   // (a) Dark-only scoping: a [data-theme="default"] colour rule would double-source the
   // default palette and break the pixel-identity-by-construction argument.
-  const defaultScopes = css.match(/\[data-theme="default"\]/g) ?? [];
+  const defaultScopes = code.match(/\[data-theme="default"\]/g) ?? [];
 
   // (b) The chrome metric freeze: theme blocks recolour, they never resize. Naive brace
   // matching is adequate here - this sheet has no CSS nesting, and dark rules are
@@ -235,13 +240,13 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   let darkBlocks = 0;
   let from = 0;
   for (;;) {
-    const open = css.indexOf('html[data-theme="dark"]', from);
+    const open = code.indexOf('html[data-theme="dark"]', from);
     if (open === -1) break;
-    const brace = css.indexOf('{', open);
-    const close = brace === -1 ? -1 : css.indexOf('}', brace);
+    const brace = code.indexOf('{', open);
+    const close = brace === -1 ? -1 : code.indexOf('}', brace);
     if (brace === -1 || close === -1) break;
     darkBlocks += 1;
-    const body = css.slice(brace + 1, close);
+    const body = code.slice(brace + 1, close);
     for (const v of METRIC_VARS) {
       if (new RegExp(`${v}\\s*:`).test(body)) offenders.push(v);
     }

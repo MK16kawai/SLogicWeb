@@ -42,6 +42,91 @@
   --panel-w: 296px;
 }
 
+/*
+ * ------------------------------------------------------- theme token layers
+ *
+ * Two additions, one rule: `default` renders byte-identically to before because the
+ * semantic tokens below only ALIAS the measured legacy variables, and every dark
+ * override is scoped to html[data-theme="dark"]. See src/ui/NOTES.md for the contract.
+ *
+ * Naming collision, settled: logicweb's --accent is the BRAND violet (checks, primary
+ * action, focus); shadcn's --accent is a HOVER SURFACE. shadcn's --accent is never
+ * introduced here - the brand role maps to --primary, hover surfaces to --muted /
+ * --secondary, and --accent keeps its legacy meaning.
+ */
+
+/* Layer B: shadcn semantic tokens [SOURCE] shadcn/ui naming + roles, aliased to the
+   measured legacy palette so adopting a token can never change the default render. */
+:root {
+  --background: var(--bg10);
+  --foreground: var(--text80);
+  --card: var(--bg20);
+  --card-foreground: var(--text80);
+  --popover: var(--bg20);
+  --popover-foreground: var(--text80);
+  --secondary: var(--bg30);
+  --secondary-foreground: var(--text);
+  --muted: var(--panel);
+  --muted-foreground: var(--text50);
+  --primary: var(--accent);
+  --primary-foreground: #ffffff;
+  --destructive: var(--negative);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-low);
+  --input: var(--border-low);
+  --ring: var(--accent);
+  --radius: 3px;             /* [MEASURED] the existing control radius */
+}
+
+/* Layer C: the dark theme. Token values [SOURCE] shadcn/ui dark (oklch), except where
+   tagged. Chrome metric variables (--toolbar-h, --axis-h, --status-h, --labels-w,
+   --rail-w, --strip-w, --panel-w) are theme-independent and NEVER redefined here -
+   src/ui/tools/theme-selftest.ts enforces the freeze. */
+html[data-theme="dark"] {
+  color-scheme: dark;        /* native select/checkbox/scrollbar render dark */
+
+  /* [SOURCE] shadcn/ui dark */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.269 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  /* [CHOSEN] shadcn's violet ramp keeps logicweb's brand hue instead of the neutral
+     near-white default primary. */
+  --primary: oklch(0.606 0.25 292.7);
+  --primary-foreground: oklch(0.969 0.016 293.756);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--primary);
+  --radius: 0.625rem;        /* [SOURCE] shadcn default: 10px cards, 6px controls via calc() */
+
+  /* Legacy remap: rules not yet migrated to semantic tokens still follow the theme.
+     [MEASURED] EXCEPTION --bg10 stays the canvas tone #1B1B1C: the axis canvas paints
+     metrics.ts COLORS.bg10 and the labels column / labels spacer / plot CSS must meet
+     the canvas pixel-perfectly (the measured seam documented in this sheet's header).
+     Toolbar, side panel, rail and status get explicit semantic overrides instead. */
+  --bg00: oklch(0.12 0 0);
+  --bg10: #1B1B1C;
+  --bg20: var(--card);
+  --bg30: var(--secondary);
+  --panel: var(--card);
+  --border-low: var(--border);
+  --border-high: var(--input);
+  --text: var(--foreground);
+  --text80: var(--card-foreground);
+  --text50: var(--muted-foreground);
+  --accent: var(--primary);
+  --negative: var(--destructive);
+  --stop: var(--destructive);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
