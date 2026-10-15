@@ -12,6 +12,10 @@
  * Each cell's height is its row's height in the waveform stack, annotation lanes included,
  * so the labels line up with the traces by construction rather than by a shared constant
  * that could drift.
+ *
+ * Under the dark theme each cell renders as one rounded card (strip + body wrapped in
+ * `.ch-card`), all cards exactly the trace-band height thanks to the `--ch-lane-offset`
+ * margin and a reserved one-line decoder strip - see src/ui/NOTES.md section 13.
  */
 
 import { formatAnalyzerNote } from './format.js';

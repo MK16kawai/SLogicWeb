@@ -563,3 +563,60 @@ one-item revert in `settingsItems()`.
   `.trigger-inline-option.selected` (`--accent`/`--primary`), and `.rail-btn.on`
   (`--bg20` on the `--panel` rail; `--secondary` on the `--background` rail) already
   read as active in both themes and were left untouched.
+
+## 13. The waveform table as cards: channel-card structure, consistent decoder height, themed scrollbars
+
+The waveform table (label column + plot rows) was the last square-edged surface:
+flat cells with a 2 px separator each, and stock scrollbars. It now renders after
+the shadcn Item idiom under the dark theme - one rounded card per channel - while
+the plot, the renderer and the row geometry are byte-for-byte untouched. Three
+ideas carry the design; all were verified against the screenshot matrix (empty,
+uart.sr, uart.sr + decoder, narrow-overflow; default x dark), not by eyeball alone.
+
+- **The wrappers are layout-invisible until a theme opts in.** `.ch-card` (around
+  strip+body) and `.ch-analyzers` (around the decoder chips) are `display: contents`
+  in the base sheet, so the default theme renders exactly as before - pixel identity
+  is structural, and the zero-pixel screenshot diff is the proof, not the hope.
+  Under dark, `.ch-card` becomes the real card: `--card` surface, `--border`
+  hairline, `calc(var(--radius) - 2px)` radius, `overflow: hidden` to clip the
+  colour strip to the corner. The cell box keeps its measured pitch - alignment
+  with the waveform rows is still by construction, only the card insets ([CHOSEN]
+  3 px vertical, 4/2 px horizontal).
+- **Cards are one consistent height, decoder or not.** A decoded channel's cell is
+  taller by its lane strips (the stack needs those rows), which used to make its
+  label visibly taller and shifted the tag/name row on attach/detach. The cell now
+  reports the lane part as `ChannelCell.laneCss`, set inline as the
+  `--ch-lane-offset` custom property, and the dark card reads it as `margin-top`:
+  every card is exactly `band - insets` tall and hugs its trace band, with the lane
+  strip transparent above it - visually part of the plot's annotation lane. A
+  custom property rather than inline padding because a property is inert until a
+  rule reads it: TS stays theme-blind and the default theme cannot move. Measured:
+  all 16 cards 48 px on a 54 px pitch; the decoded card's top equals cell top +
+  lane + inset exactly. Inside the card, `.ch-analyzers` reserves a fixed one-line
+  strip ([MEASURED] 14 px = the 12 px chip line + its 2 px gap) in EVERY card, so
+  the head row is collinear across channels and never shifts. Edge cases accepted,
+  no regression either way: a second chip on one card wraps and can clip like
+  today's overflow does, and at the 26 px minimum row height the strip clips before
+  the head.
+- **State moves with the card, not the pitch box.** Hover (dark-only affordance)
+  steps `--card` -> `--muted` + `--border` -> `--input` - verified by token VALUE
+  (oklch 0.205 -> 0.269), per the rule-10 lesson. The drop-target outline was
+  redirected from the cell (whose box now has transparent insets) to the card. The
+  rename field's focus fill moved to `--background`: a ground-level input on a card
+  surface. Trigger button/picker needed nothing: the picker anchors off
+  getBoundingClientRect and the existing dark rules hold on the card surface.
+- **Scrollbars: quiet by token, not by hiding.** `#scroll-area` and `#side-panel`
+  under dark: transparent track, slim 8 px rounded thumb in `--border-high`
+  brightening to `--muted-foreground` on hover; Firefox takes
+  `scrollbar-width: thin` + `scrollbar-color`, WebKit/Blink the pseudo-elements.
+  [CHOSEN] 8 px is about half the native width but stays grabbable; the thumb at
+  15% white sits just above the shell's contrast floor. `.usb-console-output` keeps
+  its native bar this round - an embedded console surface, not chrome.
+
+Rejected at the mockup gate (four options were built and served for review):
+**B** (one rounded frame around the whole table + hairline separators + full-row
+hover wash) - needs a new scroll-container wrapper with sticky-axis interplay for
+moderate gain; **C** (per-row islands with real gaps across label and plot) - the
+only render-layer option (per-row rounded cards in the shader), highest risk;
+**D** (separate rounded frames for labels and plot with a gutter) - loosens the
+strip/trace adjacency the label column exists for.
