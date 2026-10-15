@@ -6,7 +6,8 @@
  *   node_modules/.bin/esbuild src/ui/tools/i18n-selftest.ts --bundle --format=esm \
  *     --platform=node --outfile=/tmp/i18n-selftest.mjs && node /tmp/i18n-selftest.mjs
  *
- * Run from the repository root (later checks read index.html relative to the CWD).
+ * Run from the repository root (later checks read index.html and vite.config.ts from
+ * the CWD).
  * Prints PASS/FAIL per check and exits non-zero on any failure.
  *
  * What is pinned here:
@@ -22,6 +23,8 @@
  *     sanity with the same `{var}` name set per key (a typoed placeholder fails);
  *   - catalog key parity across locales holds at runtime, and each locale really
  *     translates the salient probe keys;
+ *   - the Vite chunk-size warning policy: exactly 2048 KB for standard builds and
+ *     20_000 KB for portable builds (static config check, no asset evaluation);
  *   - the async catalog path: every locale loads through loadCatalog() to the very
  *     same catalog object as the static import (identity, not just key parity),
  *     setLocale() round-trips, a superseded pick resolves 'superseded' without
@@ -255,6 +258,23 @@ function check(name: string, pass: boolean, detail: string): void {
     titleDrift.length === 0,
     titleDrift.length === 0 ? 'all match' :
       titleDrift.map(([k, title]) => `${k}: html=${JSON.stringify(title)} en=${JSON.stringify(catalog[k])}`).join('; '));
+}
+
+// ------------------------------------------- Vite chunk warning configuration
+// Evaluating the portable branch reads vendored runtime assets. Keep this suite
+// asset-independent by pinning the one conditional and both numeric branches.
+{
+  const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+  if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
+  const config = fs.readFileSync('vite.config.ts', 'utf8');
+  const occurrences = config.match(/chunkSizeWarningLimit\s*:/g) ?? [];
+  const setting =
+    /chunkSizeWarningLimit:\s*portable\s*\?\s*([\d_]+)\s*:\s*([\d_]+)/.exec(config);
+  const portableKb = Number(setting?.[1]?.replace(/_/g, ''));
+  const standardKb = Number(setting?.[2]?.replace(/_/g, ''));
+  check('vite.config.ts chunk warning limits are 2048 KB standard / 20000 KB portable',
+    occurrences.length === 1 && standardKb === 2048 && portableKb === 20_000,
+    `occurrences=${occurrences.length}, standard=${standardKb} KB, portable=${portableKb} KB`);
 }
 
 // ------------------------------------- structured-state formatters (render-time)

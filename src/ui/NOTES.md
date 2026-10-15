@@ -374,8 +374,14 @@ for i18next in a tree whose only runtime dependency is pyodide.
   the entry from 594.53 kB / gzip 149.72 kB (after the loader seam landed) to
   572.20 kB / gzip 143.46 kB, against a pre-task baseline of 593.53 kB / gzip
   149.32 kB; the zh-CN/ru/fr chunks measure 7.07/9.82/7.68 kB. The
-  `chunkSizeWarningLimit: 500` warning predates i18n and stays deliberately
-  unsilenced. Known limitation: rollup renders the specifier as `../<chunk>.js`,
+  standard-build `chunkSizeWarningLimit` is `2048` KB [CHOSEN], replacing the
+  historical `500` KB value; the portable build retains `20_000` KB for its inlined
+  assets. `i18n-selftest.ts` pins both configuration branches without evaluating the
+  asset-dependent portable config. The suite passed 29/29; temporarily restoring `500`
+  made only the new threshold check fail (28/29), and restoring `2048` returned it to
+  29/29 [MEASURED]. Loading the standard config through Vite's `loadConfigFromFile`
+  also returned `2048` KB [MEASURED]. Known limitation: rollup renders the specifier as
+  `../<chunk>.js`,
   which is correct at the origin root and for the live `--base=/` build, but hosting
   `dist/` below a sub-path breaks locale chunk loading (and a sub-path `--base`
   crashes the inline plugin independently - pre-existing). Sub-path hosting needs a
