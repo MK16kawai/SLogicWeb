@@ -802,7 +802,17 @@ coherent stepped-edge, level or X family with rounded stroke joins. The dual-edg
 shows rising and falling steps side by side. All trigger colors, channel colors, global
 mask and pre-trigger logic are unchanged.
 
-**Validation pending.** Exact node tables must cover every mode and condition round trip.
-Chrome must prove six distinct accessible choices, X by default, every Save mapping,
-non-destructive reopen and running/stopping locks. Desktop and narrow geometry must keep
-the Pair-1 KV rows and no-overflow contract.
+**Result: HELD.** [MEASURED] in the combined headless-Chrome scene: 12/12 checks passed,
+including all Pair-1 regressions. The six icons had distinct path data and translated
+accessible names, fit one row in the 270 px desktop control column, and an unconfigured
+channel selected X. Saving each mode produced its exact expected condition: dual-edge
+produced `kind: 'edge'`, X removed only its own channel's condition, and every saved
+selection survived reopen. The other channel's condition, Enable Mask and pre-trigger
+percentage stayed unchanged. Running and stopping were injected separately as UI state
+preconditions, not a hardware lifecycle: in both, all radios were disabled while name and
+color stayed editable, and metadata Save retained the stored edge mode. No uncaught page
+error occurred.
+
+Node checks passed with 20/20 channel-layout results, including exact six-mode mapping,
+round-trip, sorted mixed-condition and shared-default tables; 28/28 i18n results with
+`trigger.anyEdge` added to the translated probes; and `tsc --noEmit`.

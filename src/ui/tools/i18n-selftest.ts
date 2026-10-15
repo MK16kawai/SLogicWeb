@@ -363,7 +363,7 @@ const baseSettings: CaptureSettings = {
   // legitimate rewording does not break the check. A locale missing from `dicts` is a
   // clean FAIL, not a crash.
   const probes: (keyof Messages)[] = [
-    'toolbar.start', 'settings.language', 'settings.theme',
+    'toolbar.start', 'settings.language', 'settings.theme', 'trigger.anyEdge',
     'channels.settings', 'channels.name', 'channels.color',
     'channels.triggerMode', 'channels.cancel',
   ];

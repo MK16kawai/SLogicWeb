@@ -15,6 +15,8 @@
 
 import { computeChannelRowHeight } from '../channelLayout.js';
 import { ROWS } from '../metrics.js';
+import { DEFAULT_TRIGGER_MODE, modesToConditions, triggerModeFromCondition,
+  type TriggerCondition, type TriggerMode } from '../state.js';
 
 /** Same node access idiom as the other UI self-tests, without requiring @types/node. */
 const nodeProcess = (() => {
@@ -82,6 +84,40 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
 }
 
 {
+  const cases: { mode: TriggerMode; conditions: TriggerCondition[] }[] = [
+    { mode: 'falling', conditions: [{ channel: 0, kind: 'falling', level: 1 }] },
+    { mode: 'rising', conditions: [{ channel: 0, kind: 'rising', level: 1 }] },
+    { mode: 'edge', conditions: [{ channel: 0, kind: 'edge', level: 1 }] },
+    { mode: 'high', conditions: [{ channel: 0, kind: 'level', level: 1 }] },
+    { mode: 'low', conditions: [{ channel: 0, kind: 'level', level: 0 }] },
+    { mode: 'dont-care', conditions: [] },
+  ];
+  const bad = cases.filter(({ mode, conditions }) => {
+    const actual = modesToConditions({ 0: mode });
+    if (JSON.stringify(actual) !== JSON.stringify(conditions)) return true;
+    return conditions.length === 1 && triggerModeFromCondition(conditions[0]!) !== mode;
+  });
+  check('all six trigger modes map exactly and every condition round-trips',
+    bad.length === 0,
+    bad.length === 0 ? 'falling/rising/edge/high/low/X mappings and round-trips match'
+      : bad.map(({ mode }) => `${mode}: ${JSON.stringify(modesToConditions({ 0: mode }))}`).join('; '));
+
+  const mixed = modesToConditions({ 3: 'falling', 1: 'edge', 0: 'high', 2: 'dont-care' });
+  const expectedMixed: TriggerCondition[] = [
+    { channel: 0, kind: 'level', level: 1 },
+    { channel: 1, kind: 'edge', level: 1 },
+    { channel: 3, kind: 'falling', level: 1 },
+  ];
+  check('mixed trigger modes stay sorted and any-value adds no condition',
+    JSON.stringify(mixed) === JSON.stringify(expectedMixed),
+    `actual=${JSON.stringify(mixed)}`);
+
+  check('the shared unconfigured trigger default is any value',
+    DEFAULT_TRIGGER_MODE === 'dont-care' && modesToConditions({ 0: DEFAULT_TRIGGER_MODE }).length === 0,
+    `default=${DEFAULT_TRIGGER_MODE}`);
+}
+
+{
   const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
   if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
   const app = fs.readFileSync('src/ui/app.ts', 'utf8');
@@ -134,6 +170,13 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
   check('channel dialog removes its description but keeps its visible title relationship',
     descriptionRemoved,
     `descriptionRemoved=${descriptionRemoved}`);
+
+  const dualEdgeGlyph = channelList.includes("mode === 'edge' ? t('trigger.anyEdge')") &&
+    channelList.includes("mode === 'edge' ? 'M1 12H5V4H10M14 4H19V12H23'") &&
+    channelList.includes("path.setAttribute('stroke-linejoin', 'round')");
+  check('dual-edge has a translated accessible name and a redesigned stepped glyph',
+    dualEdgeGlyph,
+    `dualEdgeGlyph=${dualEdgeGlyph}`);
 
   const noGlobalListeners = !channelList.includes('document.addEventListener') &&
     !channelList.includes('window.addEventListener');
