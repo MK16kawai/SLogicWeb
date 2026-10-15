@@ -36,6 +36,7 @@
  */
 
 import { en } from '../locales/en.js';
+import { ROWS } from '../metrics.js';
 import {
   getTheme, initTheme, onThemeChange, pickTheme, setTheme,
   THEME_LABEL_KEYS, THEME_STORAGE_KEY, THEMES, type ThemeId,
@@ -289,6 +290,16 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
     baseNeutral && laneMargin && stripReserved && scrollbars && tsSetsProperty && appFeedsLane,
     `neutral=${baseNeutral}, laneMargin=${laneMargin}, strip=${stripReserved}, ` +
     `scrollbars=${scrollbars}, tsSets=${tsSetsProperty}, appFeeds=${appFeedsLane}`);
+}
+
+// ------------------------------------------- readable row minimum (check 12)
+
+// The reserved one-line card needs 46 px including its insets and borders (NOTES §14).
+// Pin the approved value exactly, and keep the upper auto-fit clamp ordered above it.
+{
+  const pass = ROWS.minRowHeight === 48 && ROWS.maxRowHeight >= ROWS.minRowHeight;
+  check('channel rows keep the readable 48px minimum below the maximum clamp',
+    pass, `min=${ROWS.minRowHeight}px, max=${ROWS.maxRowHeight}px`);
 }
 
 // ---------------------------------------------------------------------- report
