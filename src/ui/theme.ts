@@ -13,9 +13,11 @@
  *   inspectable. Every dark rule is scoped to `html[data-theme="dark"]`, so writing
  *   `default` cannot change the default rendering (the pixel-identity contract).
  * - Persistence is localStorage['logicweb.theme'] [CHOSEN], the same shape as the
- *   locale key (logicweb.lang). Absent or unknown stored values fall back to
- *   'default' [CHOSEN]. The stored theme is read by initTheme() at boot, never at
- *   module evaluation.
+ *   locale key (logicweb.lang). Absent or unknown stored values fall back to dark
+ *   (DEFAULT_THEME) [CHOSEN], and a stored 'default' migrates there too: the legacy
+ *   light pick predates dark-by-default and the retired settings picker, so honoring
+ *   it would strand the user on a theme they can no longer change. The stored theme
+ *   is read by initTheme() at boot, never at module evaluation.
  * - Storage access is guarded twice: the localStorage reference itself (undefined
  *   under node, throwing in some privacy modes) and the read/write calls (quota and
  *   security failures). A failed read falls back to 'default'; a failed write leaves
@@ -27,9 +29,17 @@
 
 import type { MessageKey } from './i18n.js';
 
-/** The shipping themes. `default` first: it is the fallback and the unchanged look. */
+/** The shipping themes. Registry order only - the fallback is DEFAULT_THEME. */
 export const THEMES = ['default', 'dark'] as const;
 export type ThemeId = (typeof THEMES)[number];
+
+/**
+ * [CHOSEN] The boot theme for every visitor without a live stored pick. Absent or
+ * unknown storage lands here, and so does the migrated legacy 'default' pick (see
+ * pickTheme). With today's registry every pickTheme() path resolves to this value;
+ * the validation stays so a future added id is honored automatically.
+ */
+export const DEFAULT_THEME: ThemeId = 'dark';
 
 /**
  * Display-label key per theme. Typed `Record<ThemeId, MessageKey>` so a new theme id
@@ -44,8 +54,8 @@ export const THEME_LABEL_KEYS: Record<ThemeId, MessageKey> = {
 /** [CHOSEN] localStorage key holding the persisted theme. */
 export const THEME_STORAGE_KEY = 'logicweb.theme';
 
-/** The active theme. Module evaluation keeps 'default'; initTheme() promotes storage. */
-let current: ThemeId = THEMES[0];
+/** The active theme. Module evaluation keeps the fallback; initTheme() promotes storage. */
+let current: ThemeId = DEFAULT_THEME;
 
 const listeners = new Set<() => void>();
 
@@ -71,9 +81,14 @@ function readStored(): string | null {
   }
 }
 
-/** Validate a stored value against the known themes; anything else means 'default'. */
+/**
+ * Resolve a stored value to the boot theme. A stored 'default' is NOT a live pick:
+ * the legacy light choice predates dark-by-default and the retired picker, so it
+ * migrates to the fallback exactly like an absent or unknown value [CHOSEN].
+ */
 export function pickTheme(stored: string | null): ThemeId {
-  return (THEMES as readonly string[]).includes(stored ?? '') ? stored as ThemeId : THEMES[0];
+  if (stored === 'default') return DEFAULT_THEME; // legacy migration
+  return (THEMES as readonly string[]).includes(stored ?? '') ? stored as ThemeId : DEFAULT_THEME;
 }
 
 export function getTheme(): ThemeId {
@@ -109,7 +124,7 @@ export function setTheme(id: ThemeId): void {
 /**
  * Boot hook: restore the persisted theme and reflect it before the first paint.
  * Synchronous (there is no catalog to load) and read-only: a fresh visitor keeps
- * 'default' and does not create a storage entry.
+ * the fallback (dark) and does not create a storage entry.
  */
 export function initTheme(): ThemeId {
   const picked = pickTheme(readStored());

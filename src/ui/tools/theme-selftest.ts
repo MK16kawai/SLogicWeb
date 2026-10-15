@@ -12,9 +12,10 @@
  * What is pinned here:
  *
  *   - the theme registry and the storage-key literal;
- *   - pickTheme falls back to 'default' for absent and unknown stored values;
+ *   - pickTheme falls back to dark for absent and unknown stored values, and
+ *     migrates a stored legacy 'default' pick to dark as well;
  *   - every theme has a label key that exists (non-empty) in the English catalog;
- *   - a fresh module boots to 'default' - asserted BEFORE any stub injection, so the
+ *   - a fresh module boots to dark - asserted BEFORE any stub injection, so the
  *     node-safety of module evaluation is part of the pass;
  *   - setTheme persists the pick, applies the <html> attribute, and notifies exactly
  *     once per real change; a same-id pick is a silent no-op (no write, no notify);
@@ -86,10 +87,10 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   const absent = pickTheme(null);
   const unknown = pickTheme('xx');
   const dark = pickTheme('dark');
-  const fallback = pickTheme('default');
-  check('pickTheme falls back to default for absent/unknown, keeps known ids',
-    absent === 'default' && unknown === 'default' && dark === 'dark' && fallback === 'default',
-    `null→${absent}, xx→${unknown}, dark→${dark}, default→${fallback}`);
+  const legacy = pickTheme('default');
+  check('pickTheme falls back to dark for absent/unknown and migrates the legacy default pick',
+    absent === 'dark' && unknown === 'dark' && dark === 'dark' && legacy === 'dark',
+    `null→${absent}, xx→${unknown}, dark→${dark}, default→${legacy}`);
 }
 
 // ------------------------------------------- label keys ↔ en catalog
@@ -116,8 +117,8 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   // this line already proves module evaluation touched neither storage nor the DOM
   // (either touch would have thrown), and the state must be the mandated default.
   const boot = getTheme();
-  check('a fresh module boots to default before any storage/DOM access',
-    boot === 'default', `getTheme()=${boot}`);
+  check('a fresh module boots to dark before any storage/DOM access',
+    boot === 'dark', `getTheme()=${boot}`);
 }
 
 // ------------------------------------------------- mutation checks (ordered)
@@ -132,13 +133,13 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   let notified = 0;
   const unsubscribe = onThemeChange(() => { notified += 1; });
 
-  setTheme('dark');
+  setTheme('default'); // fresh state is dark: this is the first real change
   const afterFirst = { theme: getTheme(), writes: writes.length, notified };
-  setTheme('dark'); // same id: must not persist or notify again
+  setTheme('default'); // same id: must not persist or notify again
   unsubscribe();
 
-  const ok = afterFirst.theme === 'dark' && afterFirst.writes === 1 && afterFirst.notified === 1 &&
-    writes.length === 1 && writes[0]?.[0] === THEME_STORAGE_KEY && writes[0]?.[1] === 'dark' &&
+  const ok = afterFirst.theme === 'default' && afterFirst.writes === 1 && afterFirst.notified === 1 &&
+    writes.length === 1 && writes[0]?.[0] === THEME_STORAGE_KEY && writes[0]?.[1] === 'default' &&
     notified === 1;
   check('setTheme persists and notifies once, and a same-id pick is a silent no-op',
     ok, `theme=${getTheme()}, writes=${writes.length}, notified=${notified}`);
@@ -148,24 +149,24 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
 {
   let fired = 0;
   const unsubscribe = onThemeChange(() => { fired += 1; });
-  setTheme('default'); // real change
+  setTheme('dark'); // real change
   const afterReal = fired;
-  setTheme('default'); // no-op
+  setTheme('dark'); // no-op
   unsubscribe();
-  setTheme('dark'); // real change while unsubscribed
+  setTheme('default'); // real change while unsubscribed
   check('onThemeChange fires once per real change and unsubscribe stops it',
-    afterReal === 1 && fired === 1 && getTheme() === 'dark',
+    afterReal === 1 && fired === 1 && getTheme() === 'default',
     `afterReal=${afterReal}, fired=${fired}, theme=${getTheme()}`);
 }
 
 // 7. The <html data-theme> side effect.
 {
-  setTheme('default'); // settle before the stub goes in
+  setTheme('dark'); // settle before the stub goes in
   const doc = { documentElement: { dataset: {} as Record<string, string> } };
   defineGlobal('document', doc);
-  setTheme('dark');
+  setTheme('default');
   check('applyTheme writes the theme id onto <html data-theme>',
-    doc.documentElement.dataset.theme === 'dark',
+    doc.documentElement.dataset.theme === 'default',
     `data-theme=${JSON.stringify(doc.documentElement.dataset.theme)}`);
 }
 
@@ -185,13 +186,13 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   const afterBoot = getTheme();
   let switchThrew = false;
   try {
-    setTheme('dark');
+    setTheme('default'); // boot landed dark: a real switch through the throwing setItem
   } catch {
     switchThrew = true;
   }
   check('throwing storage does not break boot or the in-memory switch',
-    !bootThrew && booted === 'default' && afterBoot === 'default' && !switchThrew &&
-    getTheme() === 'dark',
+    !bootThrew && booted === 'dark' && afterBoot === 'dark' && !switchThrew &&
+    getTheme() === 'default',
     `boot=${booted}, bootThrew=${bootThrew}, switchThrew=${switchThrew}, theme=${getTheme()}`);
 }
 
