@@ -90,8 +90,13 @@ export const CHROME = {
 export const ROWS = {
   /** [CHOICE] fallback when the stack has no height yet. */
   baseRowHeight: 48,
-  /** [CHOICE] clamps on the auto-fit, so a 1-channel capture is not one 800 px row. */
-  minRowHeight: 26,
+  /**
+   * [CHOSEN] The reserved channel card needs 46 px: 6 px of cell insets, 2 px of card
+   * border, 4 px of body padding, an 18 px head, a 2 px gap and a 14 px decoder strip.
+   * Keep 2 px of slack rather than letting dense captures clip the controls.
+   */
+  minRowHeight: 48,
+  /** [CHOICE] Upper auto-fit clamp, so a 1-channel capture is not one 800 px row. */
   maxRowHeight: 72,
   /** [MEASURED] src/render/theme.ts, 4 device px of #57575E at every row boundary. */
   separator: 2,
