@@ -601,10 +601,7 @@ uart.sr, uart.sr + decoder, narrow-overflow; default x dark), not by eyeball alo
 - **State moves with the card, not the pitch box.** Hover (dark-only affordance)
   steps `--card` -> `--muted` + `--border` -> `--input` - verified by token VALUE
   (oklch 0.205 -> 0.269), per the rule-10 lesson. The drop-target outline was
-  redirected from the cell (whose box now has transparent insets) to the card. The
-  rename field's focus fill moved to `--background`: a ground-level input on a card
-  surface. Trigger button/picker needed nothing: the picker anchors off
-  getBoundingClientRect and the existing dark rules hold on the card surface.
+  redirected from the cell (whose box now has transparent insets) to the card.
 - **Scrollbars: quiet by token, not by hiding.** `#scroll-area` and `#side-panel`
   under dark: transparent track, slim 8 px rounded thumb in `--border-high`
   brightening to `--muted-foreground` on hover; Firefox takes
@@ -652,3 +649,29 @@ bundled input back to 26 px makes that check fail, so the guard has a working co
 lane arithmetic is covered by the exact node checks and the pre-existing lane model, not
 by a new 32-channel decoded browser scene. Arbitrary numbers of decoder chips still use
 the existing one-line reservation and can clip as documented in section 13.
+
+## 15. Channel name and trigger settings in a native dialog
+
+**Prediction, recorded before the dialog browser checks.** Replacing the 30x18 CSS px
+trigger button with a 24x18 gear and rendering the name as an 18 px-line read-only span
+should preserve the 18 px channel head and the 46 px card-content requirement from
+section 14. The 48 px minimum pitch therefore stays valid. Moving name and trigger
+editing into one native `<dialog>` should also remove the picker's two document-level
+listeners without changing the five existing trigger mappings.
+
+**Implementation, before measurement.** The row checkbox, editable name input, trigger
+button and inline picker are gone. Each row now has a D-tag, read-only name and gear
+button. `ChannelSettingsDialog` follows the shadcn Dialog header / field-group / footer
+anatomy with `showModal()`, a visible labelled title, a native text field, five native
+radio choices and Cancel/Save actions. Save trims the name and emits one callback;
+Cancel, Escape and backdrop dismissal emit nothing. Trigger choices alone are disabled
+while running or stopping, so name metadata remains editable. App applies the callback
+through the existing clamp/condition pipeline and resets a stale trigger origin only
+when trigger settings actually change. The dialog is persistent, has no document-level
+listeners, closes before row re-renders, and refreshes every translated string on open.
+Earlier inline-trigger descriptions in sections 6 and 11-13 are historical; this
+section describes the current interaction.
+
+**Validation pending.** The Pair-1 self-test and real-browser checks have not run yet.
+They must cover row structure, vertical centering, modal focus/inertness, every close
+path, trigger mapping and capture-time locking before any result is marked HELD.

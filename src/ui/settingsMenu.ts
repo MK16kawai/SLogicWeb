@@ -4,8 +4,8 @@
  * The toolbar settings menu - a transient dropdown anchored to the Settings button.
  *
  * Shape: a disclosure (aria-expanded + aria-controls on the persistent button), not
- * ARIA menu roles - the rows are plain <button>s with Tab navigation, the same
- * honesty level as the trigger picker's click-only radios. The Language row carries
+ * ARIA menu roles - the rows are plain <button>s with ordinary Tab navigation.
+ * The Language row carries
  * the current locale's native label as its hint and toggles a flyout that opens LEFT
  * (the menu is right-anchored at the viewport edge, so rightward would clip).
  *
@@ -20,9 +20,9 @@
  * its width. The flyout is an absolutely-positioned CHILD of the menu, so a single
  * `menu.contains(target)` answers the click-outside question for both.
  *
- * Only one overlay may be open at a time: App closes the channel trigger picker when
- * this menu opens, and opening the picker is an outside pointerdown that closes this
- * menu - so the two Escape listeners can never race.
+ * Only one overlay may be open at a time: App closes the native channel-settings
+ * dialog before opening this menu. The dialog's inert underlay already prevents the
+ * reverse pointer path; this guard also covers programmatic entry.
  */
 
 export interface SettingsMenuItem {
@@ -154,8 +154,7 @@ export class SettingsMenu {
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape') return;
     this.close('escape');
-    // The trigger picker installs a sibling capture listener that does not stop
-    // propagation; with mutual-close only one overlay is open, but keep Escape ours.
+    // Keep Escape owned by this transient menu rather than leaking to shell shortcuts.
     event.stopPropagation();
   };
 

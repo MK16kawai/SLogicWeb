@@ -29,13 +29,13 @@ import type { ChannelEdges, DecodeRequest, DecodeResult } from '../decode/index.
 import { AnalyzerPanel } from './analyzerPanel.js';
 import { layoutBubbles, type AnnotationSpan, type Bubble } from './annotationLayout.js';
 import { CapturePanel } from './capturePanel.js';
-import { ChannelList, type ChannelCell } from './channelList.js';
+import { ChannelList, type ChannelCell, type ChannelConfiguration } from './channelList.js';
 import { computeChannelRowHeight } from './channelLayout.js';
 import {
   MAX_SAMPLES, levelAt, loadFiles, loadLwcap, saveLwcap,
 } from './captureIO.js';
 import { formatCount, formatDuration, formatFreq, formatRate,
-  formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from './format.js';
+  formatAnalyzerNote, formatCaptureLabel, formatStatusError } from './format.js';
 import { applyStaticI18n, getLocale, LOCALE_LABELS, LOCALES, onLocaleChange, setLocale, t,
   type Locale, type MessageKey, type MessageVars } from './i18n.js';
 import { getTheme, onThemeChange, setTheme, type ThemeId } from './theme.js';
@@ -153,11 +153,9 @@ export class App {
     this.stack = new WaveformStack(this.el.waveStack, this.storeRef);
     this.overlay = new Overlay(this.el.plot);
     this.channelList = new ChannelList(this.el.channelList, {
-      onToggle: (i, on) => this.setChannelEnabled(i, on),
-      onRename: (i, name) => { this.channels[i]!.name = name; this.relayout(); },
+      onConfigure: (channel, config) => this.configureChannel(channel, config),
       onReorder: (from, to) => this.reorder(from, to),
       onRemoveAnalyzer: (id) => this.removeAnalyzer(id),
-      onSetTrigger: (channel, mode) => this.setTriggerMode(channel, mode),
     });
 
     const panelHost = document.createElement('div');
@@ -230,23 +228,33 @@ export class App {
     return this.order.map((i) => this.channels[i]!).filter((c) => c.enabled);
   }
 
-  /** Commit one inline five-state selector immediately. The global checkbox remains the
-   * only enable gate; changing a channel while it is off merely edits saved modes. */
-  private setTriggerMode(channel: number, mode: TriggerMode): void {
-    if (this.running || this.stopping) return;
-    const triggerModes = { ...this.settings.triggerModes, [channel]: mode };
-    const triggerConditions = modesToConditions(triggerModes);
-    const first = triggerConditions[0] ?? {
-      channel, kind: 'level' as const, level: 1 as const,
-    };
-    this.settings = clampSettings({
-      ...this.settings, triggerModes, triggerConditions,
-      triggerChannel: first.channel, triggerKind: first.kind, triggerLevel: first.level,
-    }, this.rateCeilings);
-    this.triggerState = 'off';
-    this.triggerSampleIndex = null;
+  /** Commit one channel-dialog draft. Name metadata stays editable during capture,
+   * while trigger modes retain the existing running/stopping lock. */
+  private configureChannel(channel: number, config: ChannelConfiguration): void {
+    const current = this.channels[channel];
+    if (!current) return;
+    this.channels[channel] = { ...current, name: config.name };
+
+    if (!this.running && !this.stopping) {
+      const triggerModes = { ...this.settings.triggerModes, [channel]: config.mode };
+      const triggerConditions = modesToConditions(triggerModes);
+      const first = triggerConditions[0] ?? {
+        channel, kind: 'level' as const, level: 1 as const,
+      };
+      const next = clampSettings({
+        ...this.settings, triggerModes, triggerConditions,
+        triggerChannel: first.channel, triggerKind: first.kind, triggerLevel: first.level,
+      }, this.rateCeilings);
+      if (triggerSettingsChanged(this.settings, next)) {
+        this.triggerState = 'off';
+        this.triggerSampleIndex = null;
+      }
+      this.settings = next;
+    }
+
     this.relayout();
     this.renderPanels();
+    this.dirty = true;
   }
 
   /**
@@ -290,12 +298,8 @@ export class App {
         laneCss: mine.length * ROWS.laneHeight,
         analyzers: this.analyzers.filter((a) => this.chipChannels(a).includes(c.index)),
         trigger: {
-          active: this.settings.triggerModes[c.index] !== undefined && this.settings.triggerModes[c.index] !== 'dont-care',
-          masked: !this.settings.triggerEnableMask,
           mode: this.settings.triggerModes[c.index] ?? 'dont-care',
           disabled: this.running || this.stopping,
-          state: this.triggerState,
-          summary: formatTriggerSummary(this.settings, c.index),
         },
       });
     }
@@ -793,9 +797,8 @@ export class App {
       this.dirty = true;
     });
     must<HTMLButtonElement>('btn-settings').addEventListener('click', () => {
-      // One overlay at a time: the trigger picker and this menu can never race on
-      // Escape when opening one dismisses the other.
-      this.channelList.closePicker();
+      // Keep the channel dialog and this transient menu from competing for focus.
+      this.channelList.closeDialog();
       this.settingsMenu.toggle(this.settingsItems());
     });
   }
@@ -829,7 +832,7 @@ export class App {
   private retranslate(): void {
     this.settingsMenu.close('retranslate');
     applyStaticI18n(document);
-    this.relayout();       // channel cells (trigger summaries) rebuild here
+    this.relayout();       // channel cells rebuild; an open channel dialog closes here
     this.renderPanels();   // side panels + toolbar chrome
     this.renderStatus();   // status line
   }
@@ -1441,9 +1444,9 @@ export class App {
     hoverAt: (cssX: number, cssY: number) => this.updateHover(cssX, cssY),
     toggleChannel: (i: number, on: boolean) => this.setChannelEnabled(i, on),
     rename: (i: number, name: string) => {
-      const c = this.channels[i];
-      if (c) c.name = name;
-      this.relayout();
+      if (this.channels[i]) {
+        this.configureChannel(i, { name, mode: this.settings.triggerModes[i] ?? 'dont-care' });
+      }
     },
     reorder: (from: number, to: number) => this.reorder(from, to),
     /**

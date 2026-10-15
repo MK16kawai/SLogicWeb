@@ -16,12 +16,22 @@
  * Under the dark theme each cell renders as one rounded card (strip + body wrapped in
  * `.ch-card`), all cards exactly the trace-band height thanks to the `--ch-lane-offset`
  * margin and a reserved one-line decoder strip - see src/ui/NOTES.md section 13.
+ *
+ * Names are read-only in the row. One gear button opens a native modal whose shadcn-style
+ * header / field group / footer owns both name and trigger editing, so the card no longer
+ * carries three independent editing controls.
  */
 
+import { button, div } from './capturePanel.js';
 import { formatAnalyzerNote } from './format.js';
 import { t } from './i18n.js';
 import { COLORS } from './metrics.js';
 import { channelColor, type AnalyzerState, type ChannelState, type TriggerMode } from './state.js';
+
+export interface ChannelConfiguration {
+  name: string;
+  mode: TriggerMode;
+}
 
 export interface ChannelCell {
   channel: ChannelState;
@@ -35,36 +45,196 @@ export interface ChannelCell {
   laneCss: number;
   analyzers: AnalyzerState[];
   trigger: {
-    active: boolean;
-    masked: boolean;
     mode: TriggerMode;
+    /** Capture state locks trigger edits, not unrelated channel metadata. */
     disabled: boolean;
-    state: 'off' | 'waiting' | 'triggered' | 'not-found';
-    summary: string;
   };
 }
 
 export interface ChannelListCallbacks {
-  onToggle(index: number, enabled: boolean): void;
-  onRename(index: number, name: string): void;
+  /** Commit one dialog draft; App owns every resulting session mutation. */
+  onConfigure(index: number, config: ChannelConfiguration): void;
   /** Move the channel at `from` in display order to `to`. */
   onReorder(from: number, to: number): void;
   onRemoveAnalyzer(id: string): void;
-  onSetTrigger(index: number, mode: TriggerMode): void;
+}
+
+const TRIGGER_MODES: readonly TriggerMode[] = ['falling', 'rising', 'high', 'low', 'dont-care'];
+
+interface TriggerOption {
+  label: HTMLLabelElement;
+  input: HTMLInputElement;
+}
+
+/**
+ * One persistent native dialog per ChannelList. Unlike the retired inline picker, this
+ * adds no document/window listeners: showModal owns focus and inertness, while the
+ * dialog's own cancel event covers Escape. All non-submit paths discard their draft.
+ */
+class ChannelSettingsDialog {
+  private readonly dialog: HTMLDialogElement;
+  private readonly title: HTMLHeadingElement;
+  private readonly description: HTMLParagraphElement;
+  private readonly nameLabel: HTMLLabelElement;
+  private readonly nameInput: HTMLInputElement;
+  private readonly triggerLegend: HTMLLegendElement;
+  private readonly triggerFieldset: HTMLFieldSetElement;
+  private readonly cancelButton: HTMLButtonElement;
+  private readonly saveButton: HTMLButtonElement;
+  private readonly triggerOptions = new Map<TriggerMode, TriggerOption>();
+  private channel = -1;
+  private anchor: HTMLButtonElement | null = null;
+
+  constructor(
+    private readonly onConfigure: ChannelListCallbacks['onConfigure'],
+    private readonly onSaved: (channel: number) => void,
+  ) {
+    this.dialog = document.createElement('dialog');
+    this.dialog.className = 'channel-settings-dialog';
+    this.dialog.setAttribute('aria-labelledby', 'channel-settings-title');
+    this.dialog.setAttribute('aria-describedby', 'channel-settings-description');
+
+    const form = document.createElement('form');
+    form.className = 'channel-settings-form';
+
+    const header = div('channel-settings-header');
+    this.title = document.createElement('h2');
+    this.title.id = 'channel-settings-title';
+    this.description = document.createElement('p');
+    this.description.id = 'channel-settings-description';
+    header.append(this.title, this.description);
+
+    const fields = div('channel-settings-fields');
+    const nameField = div('channel-settings-field');
+    this.nameLabel = document.createElement('label');
+    this.nameLabel.htmlFor = 'channel-settings-name';
+    this.nameInput = document.createElement('input');
+    this.nameInput.id = 'channel-settings-name';
+    this.nameInput.className = 'channel-settings-name';
+    this.nameInput.type = 'text';
+    this.nameInput.spellcheck = false;
+    this.nameInput.autocomplete = 'off';
+    nameField.append(this.nameLabel, this.nameInput);
+
+    this.triggerFieldset = document.createElement('fieldset');
+    this.triggerFieldset.className = 'channel-trigger-options';
+    this.triggerLegend = document.createElement('legend');
+    this.triggerFieldset.appendChild(this.triggerLegend);
+    for (const mode of TRIGGER_MODES) {
+      const label = document.createElement('label');
+      label.className = 'channel-trigger-option';
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'channel-trigger-mode';
+      input.value = mode;
+      label.append(input, triggerIcon(mode));
+      this.triggerFieldset.appendChild(label);
+      this.triggerOptions.set(mode, { label, input });
+    }
+
+    fields.append(nameField, this.triggerFieldset);
+
+    const footer = div('channel-settings-actions');
+    this.cancelButton = button('', 'channel-settings-cancel');
+    this.cancelButton.type = 'button';
+    this.saveButton = button('', 'primary');
+    this.saveButton.type = 'submit';
+    footer.append(this.cancelButton, this.saveButton);
+
+    form.append(header, fields, footer);
+    this.dialog.appendChild(form);
+    document.body.appendChild(this.dialog);
+
+    form.addEventListener('submit', this.onSubmit);
+    this.cancelButton.addEventListener('click', () => this.dismiss(true));
+    this.dialog.addEventListener('cancel', (event) => {
+      // Keep cleanup and focus restoration identical to the Cancel button rather than
+      // relying on the browser's post-close active-element state.
+      event.preventDefault();
+      this.dismiss(true);
+    });
+    this.dialog.addEventListener('pointerdown', (event) => {
+      // With a zero-padding dialog, only the backdrop targets the dialog itself; the
+      // form and every child keep their ordinary pointer behavior.
+      if (event.target === this.dialog) this.dismiss(true);
+    });
+  }
+
+  open(anchor: HTMLButtonElement, cell: ChannelCell): void {
+    if (this.dialog.open) this.dismiss(false);
+    this.channel = cell.channel.index;
+    this.anchor = anchor;
+    this.renderStrings(cell.channel.index);
+    this.nameInput.value = cell.channel.name;
+    this.triggerFieldset.disabled = cell.trigger.disabled;
+    for (const [mode, option] of this.triggerOptions) {
+      option.input.checked = mode === cell.trigger.mode;
+    }
+    this.dialog.showModal();
+    this.nameInput.focus();
+    this.nameInput.select();
+  }
+
+  close(): void {
+    this.dismiss(false);
+  }
+
+  private renderStrings(channel: number): void {
+    this.title.textContent = t('channels.settings', { index: channel });
+    this.description.textContent = t('channels.dialogDescription');
+    this.nameLabel.textContent = t('channels.name');
+    this.triggerLegend.textContent = t('channels.triggerMode');
+    this.cancelButton.textContent = t('channels.cancel');
+    this.saveButton.textContent = t('toolbar.save');
+    for (const [mode, option] of this.triggerOptions) {
+      const name = triggerModeName(mode);
+      option.label.title = name;
+      option.input.setAttribute('aria-label', name);
+    }
+  }
+
+  private readonly onSubmit = (event: SubmitEvent): void => {
+    event.preventDefault();
+    if (this.channel < 0) return;
+    const channel = this.channel;
+    const mode = TRIGGER_MODES.find((candidate) =>
+      this.triggerOptions.get(candidate)?.input.checked) ?? 'dont-care';
+    const config: ChannelConfiguration = { name: this.nameInput.value.trim(), mode };
+
+    // Close before App re-renders and replaces the anchor. Clear our references first so
+    // the subsequent render cannot mistake this commit for a draft dismissal.
+    this.channel = -1;
+    this.anchor = null;
+    this.dialog.close();
+    this.onConfigure(channel, config);
+    this.onSaved(channel);
+  };
+
+  private dismiss(restoreFocus: boolean): void {
+    const anchor = this.anchor;
+    this.channel = -1;
+    this.anchor = null;
+    if (this.dialog.open) this.dialog.close();
+    if (restoreFocus && anchor?.isConnected) anchor.focus();
+  }
 }
 
 export class ChannelList {
   private dragFrom = -1;
-  private picker: HTMLDivElement | null = null;
-  private pickerAnchor: HTMLButtonElement | null = null;
+  private readonly settingsDialog: ChannelSettingsDialog;
 
   constructor(
     private readonly root: HTMLElement,
     private readonly cb: ChannelListCallbacks,
-  ) {}
+  ) {
+    this.settingsDialog = new ChannelSettingsDialog(this.cb.onConfigure, (channel) => {
+      const selector = `.ch-settings[data-channel="${channel}"]`;
+      this.root.querySelector<HTMLButtonElement>(selector)?.focus();
+    });
+  }
 
   render(cells: readonly ChannelCell[]): void {
-    this.closePicker(false);
+    this.settingsDialog.close();
     this.root.replaceChildren();
     cells.forEach((cell, pos) => {
       const el = document.createElement('div');
@@ -97,68 +267,31 @@ export class ChannelList {
       const head = document.createElement('div');
       head.className = 'ch-head';
 
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.className = 'ch-enable';
-      box.checked = cell.channel.enabled;
-      box.title = cell.channel.enabled ? t('channels.disable') : t('channels.enable');
-      box.addEventListener('change', () => this.cb.onToggle(cell.channel.index, box.checked));
-      head.appendChild(box);
-
       const tag = document.createElement('span');
       tag.className = 'ch-tag';
       tag.textContent = `D${cell.channel.index}`;
       tag.style.color = channelColor(cell.channel.index);
       head.appendChild(tag);
 
-      const name = document.createElement('input');
+      const name = document.createElement('span');
       name.className = 'ch-name';
-      name.value = cell.channel.name;
-      name.spellcheck = false;
-      name.title = t('channels.rename');
-      name.placeholder = '···';
-      // Committing on blur and on Enter, not on every keystroke: a re-render on each
-      // character would take the caret with it. An empty name is valid: the D-tag is
-      // the identity, the name is optional.
-      const commit = () => {
-        const v = name.value.trim();
-        if (v !== cell.channel.name) this.cb.onRename(cell.channel.index, v);
-      };
-      name.addEventListener('blur', commit);
-      name.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') name.blur();
-        if (e.key === 'Escape') { name.value = cell.channel.name; name.blur(); }
-        e.stopPropagation();
-      });
-      // Dragging the cell must not start from inside a text field, or the field is
-      // unusable.
-      name.addEventListener('mousedown', () => { el.draggable = false; });
-      name.addEventListener('mouseup', () => { el.draggable = true; });
+      name.textContent = cell.channel.name;
       head.appendChild(name);
 
-      const trigger = document.createElement('button');
-      trigger.type = 'button';
-      trigger.className = 'ch-trigger' + (cell.trigger.active ? ' active' : '') +
-        (cell.trigger.masked ? ' masked' : '');
-      if (cell.trigger.active) trigger.classList.add(cell.trigger.state);
-      trigger.replaceChildren(triggerIcon(cell.trigger.mode));
-      trigger.title = cell.trigger.active
-        ? t(cell.trigger.masked ? 'channels.triggerTitleMasked' : 'channels.triggerTitle',
-          { summary: cell.trigger.summary })
-        : t('channels.triggerConfigure', { index: cell.channel.index });
-      trigger.disabled = cell.trigger.disabled;
-      trigger.setAttribute('aria-pressed', String(cell.trigger.active && !cell.trigger.masked));
-      trigger.setAttribute('aria-label', cell.trigger.active
-        ? t(cell.trigger.masked ? 'channels.triggerAriaMasked' : 'channels.triggerAriaActive',
-          { summary: cell.trigger.summary })
-        : t('channels.triggerAriaOff', { index: cell.channel.index }));
-      trigger.addEventListener('click', (event) => {
+      const settings = document.createElement('button');
+      settings.type = 'button';
+      settings.className = 'ch-settings';
+      settings.dataset['channel'] = String(cell.channel.index);
+      settings.title = t('channels.settings', { index: cell.channel.index });
+      settings.setAttribute('aria-label', settings.title);
+      settings.appendChild(settingsIcon());
+      settings.addEventListener('click', (event) => {
         event.stopPropagation();
-        this.openPicker(trigger, cell.channel.index, cell.trigger.mode);
+        this.settingsDialog.open(settings, cell);
       });
-      trigger.addEventListener('mousedown', () => { el.draggable = false; });
-      trigger.addEventListener('mouseup', () => { el.draggable = true; });
-      head.appendChild(trigger);
+      settings.addEventListener('mousedown', () => { el.draggable = false; });
+      settings.addEventListener('mouseup', () => { el.draggable = true; });
+      head.appendChild(settings);
       body.appendChild(head);
 
       const chips = document.createElement('div');
@@ -210,65 +343,17 @@ export class ChannelList {
     });
   }
 
-  private openPicker(anchor: HTMLButtonElement, channel: number, selected: TriggerMode): void {
-    if (this.pickerAnchor === anchor && this.picker) { this.closePicker(); return; }
-    this.closePicker(false);
-    const picker = document.createElement('div');
-    picker.className = 'trigger-inline-picker';
-    picker.setAttribute('role', 'radiogroup');
-    picker.setAttribute('aria-label', t('channels.triggerPickerAria', { index: channel }));
-    const modes: readonly TriggerMode[] = ['falling', 'rising', 'high', 'low', 'dont-care'];
-    const names: Record<TriggerMode, string> = {
-      falling: t('trigger.falling'), rising: t('trigger.rising'), high: t('channels.triggerHigh'),
-      low: t('channels.triggerLow'), 'dont-care': t('channels.triggerAny'),
-    };
-    for (const mode of modes) {
-      const option = document.createElement('button');
-      option.type = 'button';
-      option.className = 'trigger-inline-option' + (mode === selected ? ' selected' : '');
-      option.title = names[mode];
-      option.setAttribute('role', 'radio');
-      option.setAttribute('aria-checked', String(mode === selected));
-      option.appendChild(triggerIcon(mode));
-      option.addEventListener('pointerdown', (event) => event.stopPropagation());
-      option.addEventListener('click', (event) => {
-        event.stopPropagation();
-        this.closePicker();
-        this.cb.onSetTrigger(channel, mode);
-      });
-      picker.appendChild(option);
-    }
-    const rect = anchor.getBoundingClientRect();
-    picker.style.left = `${Math.round(rect.left)}px`;
-    picker.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
-    document.body.appendChild(picker);
-    this.picker = picker;
-    this.pickerAnchor = anchor;
-    requestAnimationFrame(() => picker.classList.add('open'));
-    document.addEventListener('pointerdown', this.onOutsidePointerDown, true);
-    document.addEventListener('keydown', this.onPickerKeyDown, true);
+  /** Close before the toolbar opens its separate transient overlay. */
+  closeDialog(): void {
+    this.settingsDialog.close();
   }
+}
 
-  private readonly onOutsidePointerDown = (event: PointerEvent): void => {
-    if (this.picker?.contains(event.target as Node) || this.pickerAnchor?.contains(event.target as Node)) return;
-    this.closePicker();
-  };
-
-  private readonly onPickerKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') this.closePicker();
-  };
-
-  closePicker(animate = true): void {
-    const picker = this.picker;
-    this.picker = null;
-    this.pickerAnchor = null;
-    document.removeEventListener('pointerdown', this.onOutsidePointerDown, true);
-    document.removeEventListener('keydown', this.onPickerKeyDown, true);
-    if (!picker) return;
-    picker.classList.remove('open');
-    if (animate && picker.isConnected) setTimeout(() => picker.remove(), 140);
-    else picker.remove();
-  }
+function triggerModeName(mode: TriggerMode): string {
+  return mode === 'falling' ? t('trigger.falling')
+    : mode === 'rising' ? t('trigger.rising')
+      : mode === 'high' ? t('channels.triggerHigh')
+        : mode === 'low' ? t('channels.triggerLow') : t('channels.triggerAny');
 }
 
 function triggerIcon(mode: TriggerMode): SVGSVGElement {
@@ -284,5 +369,29 @@ function triggerIcon(mode: TriggerMode): SVGSVGElement {
   path.setAttribute('stroke-width', '2');
   path.setAttribute('stroke-linecap', 'square');
   svg.appendChild(path);
+  return svg;
+}
+
+/** Lucide's Settings geometry, realized with the existing no-icon-library SVG idiom. */
+function settingsIcon(): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.dataset['icon'] = 'inline-start';
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '12');
+  circle.setAttribute('cy', '12');
+  circle.setAttribute('r', '3');
+  circle.setAttribute('fill', 'none');
+  circle.setAttribute('stroke', 'currentColor');
+  circle.setAttribute('stroke-width', '2');
+  svg.append(path, circle);
   return svg;
 }
