@@ -30,6 +30,7 @@ import { AnalyzerPanel } from './analyzerPanel.js';
 import { layoutBubbles, type AnnotationSpan, type Bubble } from './annotationLayout.js';
 import { CapturePanel } from './capturePanel.js';
 import { ChannelList, type ChannelCell } from './channelList.js';
+import { computeChannelRowHeight } from './channelLayout.js';
 import {
   MAX_SAMPLES, levelAt, loadFiles, loadLwcap, saveLwcap,
 } from './captureIO.js';
@@ -270,9 +271,7 @@ export class App {
       return;
     }
 
-    const laneTotal = this.lanes.length * ROWS.laneHeight;
-    let base = Math.floor((plotH - laneTotal) / enabled.length);
-    base = Math.max(ROWS.minRowHeight, Math.min(ROWS.maxRowHeight, base));
+    const base = computeChannelRowHeight(plotH, enabled.length, this.lanes.length);
 
     const rows: RowSpec[] = [];
     const cells: ChannelCell[] = [];
