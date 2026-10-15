@@ -349,6 +349,15 @@ const baseSettings: CaptureSettings = {
 }
 
 {
+  const retired = 'channels.dialogDescription';
+  const dicts: Record<string, Messages> = { en, 'zh-CN': zhCN, ru, fr };
+  const present = Object.entries(dicts).filter(([, dict]) => Object.keys(dict).includes(retired));
+  check('the retired channel dialog description stays absent from every catalog',
+    present.length === 0,
+    present.length === 0 ? `4 catalogs omit ${retired}` : present.map(([locale]) => locale).join(', '));
+}
+
+{
   // A catalog that silently shipped the English text would pass parity and fail users.
   // Assert the PROPERTY (translated ≠ English) on salient keys, not exact wording, so a
   // legitimate rewording does not break the check. A locale missing from `dicts` is a

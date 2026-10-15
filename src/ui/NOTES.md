@@ -763,7 +763,23 @@ row-pitch code changed.
 draft but left focus on `body`: preventing the backdrop pointerdown's default action is
 necessary so the completed click cannot retarget focus after the handler restores it.
 
-**Validation pending.** Exact node guards and desktop/narrow Chrome geometry must prove
-the two KV rows, the stacked last color field, complete description removal and no
-horizontal overflow. Name edits and every existing Save/Cancel/Escape/backdrop path must
-remain green.
+**Result: HELD after one focus repair.** [MEASURED] in headless Chrome at 1280x800 and
+320x700: 9/9 checks passed. At desktop the 420 px dialog gave both KV labels 104 px and
+both controls 270 px; at 320 px the 288 px dialog retained the 104 px labels and shrank
+the controls to 138 px, wrapping trigger choices without page or dialog horizontal
+overflow. Color remained vertical and last, the visible title remained, and no
+description element or ARIA relationship existed. Save trimmed a name and retained its
+trigger/color payload; Cancel, real Escape and a real backdrop click discarded drafts.
+Save, Cancel, Escape and backdrop all returned focus to the D0 settings button. A zh-CN
+switch preserved the layout and description-free header, and no uncaught page error
+occurred.
+
+The first backdrop run was not accepted: it exposed a real post-click focus move to
+`body`. The repair above prevents that default focus action; the rerun then passed the
+same real-mouse check. The earlier driver startup timeouts were target/navigation setup
+issues, not product evidence, and were discarded rather than counted as application
+failures.
+
+Node checks passed with 16/16 channel-layout results, including exact KV/color-order,
+description and backdrop-focus guards; 28/28 i18n results, including description-key
+absence in all four catalogs; and `tsc --noEmit`.

@@ -119,14 +119,35 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
     dialogSource.includes(exactModes) && nativeModal && oneSavePath,
     `modes=${dialogSource.includes(exactModes)}, native=${nativeModal}, save=${oneSavePath}`);
 
+  const kvRows = (dialogSource.match(/channel-settings-field channel-settings-kv/g) ?? []).length === 2 &&
+    dialogSource.includes("this.triggerFieldset.setAttribute('aria-labelledby', this.triggerLabel.id)") &&
+    dialogSource.includes("div('channel-settings-field channel-settings-color-field')") &&
+    dialogSource.includes('fields.append(nameField, triggerField, colorField);');
+  check('name and trigger use KV rows while color stays vertical and last',
+    kvRows,
+    `nameTriggerRows=${(dialogSource.match(/channel-settings-field channel-settings-kv/g) ?? []).length}, colorLast=${dialogSource.includes('fields.append(nameField, triggerField, colorField);')}`);
+
+  const descriptionRemoved = !dialogSource.includes('aria-describedby') &&
+    !dialogSource.includes('channel-settings-description') &&
+    !dialogSource.includes('channels.dialogDescription') &&
+    dialogSource.includes("this.dialog.setAttribute('aria-labelledby', 'channel-settings-title')");
+  check('channel dialog removes its description but keeps its visible title relationship',
+    descriptionRemoved,
+    `descriptionRemoved=${descriptionRemoved}`);
+
   const noGlobalListeners = !channelList.includes('document.addEventListener') &&
     !channelList.includes('window.addEventListener');
   const discardPaths = dialogSource.includes("this.dialog.addEventListener('cancel'") &&
-    dialogSource.includes('if (event.target === this.dialog) this.dismiss(true);') &&
+    dialogSource.includes('if (event.target === this.dialog) {') &&
     dialogSource.includes("this.cancelButton.addEventListener('click', () => this.dismiss(true))");
   check('dialog dismissal paths need no document or window listeners',
     noGlobalListeners && discardPaths,
     `noGlobalListeners=${noGlobalListeners}, discardPaths=${discardPaths}`);
+
+  const backdropFocus = dialogSource.includes('event.preventDefault();\n        this.dismiss(true);');
+  check('backdrop pointerdown cannot retarget focus after dismissal',
+    backdropFocus,
+    `preventDefaultBeforeDismiss=${backdropFocus}`);
 
   const capturePanel = fs.readFileSync('src/ui/capturePanel.ts', 'utf8');
   const waveformStack = fs.readFileSync('src/ui/waveformStack.ts', 'utf8');
