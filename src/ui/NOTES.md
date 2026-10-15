@@ -540,3 +540,26 @@ one-item revert in `settingsItems()`.
   a full-viewport screenshot byte-identical across a default->dark->default round-trip.
   A running capture differs from a loaded one only by more canvas paints of the same
   frozen palette, which the theme never touches.
+- **Pressed feedback is one veil, not a family of tokens.** Every `<button>` -
+  momentary or toggle - darkens while held via `button:active { box-shadow: inset
+  0 0 0 999px rgb(0 0 0 / 25%) }`. An inset veil was chosen over per-family pressed
+  background tokens because it darkens WHATEVER is showing - base, hover, `.on`,
+  `.primary`/`.danger`, and the inline `channelColor` of an enabled `.chip`, which no
+  token swap could reach - and because `box-shadow` is additive, it composes over
+  `:hover` with no cascade-order fragility and no new tokens in either theme. No
+  button class sets its own `box-shadow` (only overlay containers do), the dark focus
+  ring is `outline`-based, and a disabled native button never matches `:active`, so
+  the veil clobbers nothing and needs no disabled guard. The 25% figure is [CHOSEN],
+  tuned for readability on `--bg20`/`--secondary` without washing out channel chips.
+- **The dark segmented active state inverts; a tonal shift there is provably
+  invisible.** The first dark pass styled `.seg.on` after the ToggleGroup idiom (a
+  `--secondary` surface), but in the dark token set `--secondary` equals BOTH the base
+  `.seg` surface and `--muted` (all `oklch(0.269 0 0)`), so free-run vs timed was
+  indistinguishable - in the theme that is now the default. `.seg.on` under dark now
+  mirrors the default theme's inversion instead: `--foreground` surface,
+  `--background` text, `--foreground` border, at 0-3-1 specificity over the 0-2-1 base
+  rule. The remaining toggle families were audited rather than assumed: `.chip.on`
+  (inline channel colour), `.ch-trigger.active` (violet surface both themes),
+  `.trigger-inline-option.selected` (`--accent`/`--primary`), and `.rail-btn.on`
+  (`--bg20` on the `--panel` rail; `--secondary` on the `--background` rail) already
+  read as active in both themes and were left untouched.
