@@ -222,7 +222,7 @@ export default defineConfig({
     // Keep production minification while making the exact TypeScript sources available
     // in DevTools when diagnosing USB/decoder issues on a user's machine.
     sourcemap: true,
-    chunkSizeWarningLimit: portable ? 20_000 : 500,
+    chunkSizeWarningLimit: portable ? 20_000 : 2048,
     rollupOptions: {
       output: {
         banner: BANNER,
