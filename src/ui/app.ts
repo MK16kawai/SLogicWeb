@@ -288,6 +288,7 @@ export class App {
       cells.push({
         channel: c,
         heightCss: base + mine.length * ROWS.laneHeight,
+        laneCss: mine.length * ROWS.laneHeight,
         analyzers: this.analyzers.filter((a) => this.chipChannels(a).includes(c.index)),
         trigger: {
           active: this.settings.triggerModes[c.index] !== undefined && this.settings.triggerModes[c.index] !== 'dont-care',

@@ -23,6 +23,12 @@ export interface ChannelCell {
   channel: ChannelState;
   /** Total CSS height, base row plus every lane this channel carries. */
   heightCss: number;
+  /**
+   * The lane part of `heightCss` (0 when the channel carries no annotations). The
+   * dark theme's card reads it as `--ch-lane-offset` to hug the trace band, so
+   * cards are one consistent height whether or not a decoder is attached.
+   */
+  laneCss: number;
   analyzers: AnalyzerState[];
   trigger: {
     active: boolean;
@@ -63,6 +69,10 @@ export class ChannelList {
       el.draggable = true;
       el.dataset['pos'] = String(pos);
       if (!cell.channel.enabled) el.classList.add('disabled');
+      /* Per-instance lane offset, set inline (house rule). A custom property, not
+         inline padding: a property is inert until a rule reads it, so the default
+         theme - where .ch-card is display:contents - stays pixel-identical. */
+      if (cell.laneCss > 0) el.style.setProperty('--ch-lane-offset', `${cell.laneCss}px`);
 
       /* The card wrapper groups strip+body so a theme can render the cell as one
          rounded card; the chips container lets a theme reserve the decoder strip.

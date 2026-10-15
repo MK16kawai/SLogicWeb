@@ -387,10 +387,24 @@ html[data-theme="dark"] .ch-card {
   display: flex;
   flex: 1;
   min-width: 0;
+  /* A decoded channel's cell is taller by its lane strips; the margin pushes the
+     card past them so it hugs the trace band. Every card is therefore exactly the
+     band height (pitch minus lanes minus insets), with or without a decoder, and
+     the lane strip stays transparent above it - visually part of the plot's lane. */
+  margin-top: var(--ch-lane-offset, 0px);
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);  /* [SOURCE] shadcn control radius idiom */
   overflow: hidden;                          /* clips the colour strip to the radius */
+}
+/* The reserved decoder strip: one fixed-height line in EVERY card, empty when no
+   analyzer is attached, so attaching or removing a decoder never shifts the
+   tag/name row. [MEASURED] 14px = the .ch-analyzer line (12px) plus its 2px gap. */
+html[data-theme="dark"] .ch-analyzers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 14px;
 }
 /* Hover brightens the card. Verified by token VALUE (styling rule 10): --card is
    oklch 0.205 and --muted oklch 0.269 - a real lightness step, not the --secondary
