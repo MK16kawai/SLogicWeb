@@ -540,6 +540,36 @@ button:disabled { opacity: 0.45; cursor: default; }
 .analyzer-name { min-width: 54px; }
 .analyzer-status { flex: 1; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Dark theme: the side panel becomes a card stack (the shadcn Card composition) - the
+   flat border-separated sections turn into outlined cards on a darker panel ground.
+   The border shorthand replaces each section's border-bottom; spacing comes from the
+   host's gap, never margins. Padding/gap live inside the scrollable panel - no shell
+   metric moves (theme-selftest pins the freeze). */
+html[data-theme="dark"] #side-panel { background: var(--background); }
+html[data-theme="dark"] .panel-host {
+  display: flex; flex-direction: column; gap: 8px; padding: 8px;
+}
+html[data-theme="dark"] .panel-head,
+html[data-theme="dark"] .panel-section,
+html[data-theme="dark"] .advanced {
+  background: var(--card); color: var(--card-foreground);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+html[data-theme="dark"] .panel-head { padding: 14px 14px 12px; }
+html[data-theme="dark"] .panel-section { padding: 12px 14px; }
+html[data-theme="dark"] .panel-title,
+html[data-theme="dark"] .panel-section-head,
+html[data-theme="dark"] .advanced summary { color: var(--foreground); }
+html[data-theme="dark"] .panel-sub,
+html[data-theme="dark"] .panel-note { color: var(--muted-foreground); }
+
+/* The plot needs no frame of its own under dark: the canvas paints the measured
+   #1B1B1C in both themes while the chrome drops to near-black, so the tonal contrast
+   already reads as an inset well. Evaluated and rejected: a border-top doubles the
+   axis hairline and (border-box) shifts the waveform canvases 1 px out of alignment
+   with the channel rows; an inset box-shadow paints UNDER the child canvases and is
+   invisible; a radius reveals the body's identical background. Contrast wins. */
+
 /* ---------------------------------------------------------------- status bar */
 
 #status {

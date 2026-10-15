@@ -160,6 +160,9 @@ export class App {
     });
 
     const panelHost = document.createElement('div');
+    // The class hooks the dark theme's card stack (style.css): a flex column with a gap,
+    // so the cards space without margins. Under the default theme it styles nothing.
+    panelHost.className = 'panel-host';
     this.el.side.appendChild(panelHost);
     this.capturePanel = new CapturePanel(panelHost, {
       onSettings: (s) => {
