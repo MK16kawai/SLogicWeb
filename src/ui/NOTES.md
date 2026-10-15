@@ -465,3 +465,68 @@ for i18next in a tree whose only runtime dependency is pyodide.
   `sourceDescription` (it is baked into .lwcap files at save time - translating it
   would make saved files locale-dependent), canvas glyphs and the A/B/|B-A| status
   symbols, and the boot-failure message in main.ts.
+
+## 12. Themes: the token layer, the dark theme, and the pre-paint restore
+
+The settings menu grew a second sub-option: Theme (`default` | `dark`), next to
+Language. `default` is the measured Logic2-style palette this app shipped with;
+`dark` is a shadcn-style dark theme. The theme is chrome-only CSS - canvases, capture
+state and layout metrics never move.
+
+- **`src/ui/theme.ts` is `i18n.ts` shrunk to fit a synchronous problem.** Same module
+  shape (module state, guarded `localStorage['logicweb.theme']`, subscribers, node-safe
+  top level, `pickTheme` fallback for absent/garbage values), but `setTheme` is sync:
+  there is no catalog to fetch, so no Promise, no request race, no 'superseded'. The
+  module owns the DOM side effect (`document.documentElement.dataset.theme`), the same
+  ownership split as `setLocale` owning `<html lang>`. Scriptable through
+  `App.debug.setTheme/getTheme`; `snapshot().theme` carries it.
+- **Pre-paint restore is a two-line inline script in `index.html`** (module scripts are
+  deferred, so waiting for `boot()` would flash the default chrome). It only recognizes
+  the exact id `dark`; everything else falls through to the default. The duplication of
+  the storage key is drift-proof: `theme-selftest.ts` builds its needle from
+  `THEME_STORAGE_KEY` as the exact quoted `getItem('<key>')` literal - a substring match
+  would not catch a drift to a longer key, which is why the needle is quoted. The
+  portable build's `inlineEntryForFileOpen` only rewrites module scripts and stylesheet
+  links, so the bare inline script passes through untouched (verified in dist).
+- **Three CSS layers, one stylesheet.** Layer A is the legacy `:root`, untouched, so
+  `default` is pixel-identical by construction (gated on a 0-byte-diff headless-Chrome
+  screenshot against the pre-theme baseline, not on hope). Layer B is a shadcn semantic
+  token block that only *aliases* the legacy variables (`--card: var(--bg20)`, ...), so
+  adopting a token cannot change the default render either. Layer C is one
+  `html[data-theme="dark"]` block with the shadcn dark palette in oklch plus a legacy
+  remap, so rules not yet migrated to semantic tokens still follow the theme.
+- **The `--accent` collision is settled by never introducing shadcn's.** logicweb's
+  `--accent` is the brand violet; shadcn's `--accent` is a hover surface. Brand maps to
+  `--primary`, hover surfaces to `--muted`/`--secondary`, `--accent` keeps its legacy
+  meaning everywhere.
+- **`--bg10` stays `#1B1B1C` under dark - the canvas seam wins over palette purity.**
+  The axis canvas *paints* `COLORS.bg10` from metrics.ts, and the labels column, labels
+  spacer and plot CSS background must meet that pixel seamlessly (the measured seam in
+  this file's §1). Mapping `--bg10` to the near-black `--background` would have stepped
+  the label column against every waveform row. The dark shell differentiation comes from
+  explicit semantic overrides on the toolbar, side panel, rail and status bar instead,
+  and the plot reads as an inset well by tonal contrast alone. A `#plot` frame was
+  evaluated and rejected: a `border-top` doubles the axis hairline and (border-box)
+  shifts the waveform canvases 1 px out of row alignment, an inset `box-shadow` paints
+  *under* the child canvases (invisible), and a `border-radius` reveals the body's
+  identical background (also invisible).
+- **The metric freeze is enforced, not promised.** `theme-selftest.ts` scans the sheet
+  (comments stripped - the token-layer header itself mentions the dark selector, and a
+  naive scan would attribute the next block's declarations to it) and fails if any
+  `html[data-theme="dark"]` block redefines `--toolbar-h/--axis-h/--status-h/--labels-w/
+  --rail-w/--strip-w/--panel-w`, or if any `[data-theme="default"]` rule exists.
+- **Specificity traps that were designed around**: `.ch-trigger.active.triggered` (green)
+  and `.not-found` (red) sit one specificity step below a naive dark `.active` override,
+  so the dark rule excludes them with `:not()`; `#toolbar button` out-specifies
+  `.primary`, so the dark button restyle excludes `.primary`/`.danger` the same way. The
+  waiting pulse's peak colour moved into `--accent-hi` (default `#a98ff0`, dark an oklch
+  violet) so `@keyframes trigger-waiting` retunes per theme without an override block -
+  custom properties in keyframes resolve against the animated element.
+- **Switching themes is chrome-only by construction and by measurement.** `App`'s
+  `onThemeChange` handler closes the transient settings menu (new `'theme'` close
+  reason, no focus hand-off - same class as `'retranslate'`) and nothing else: no
+  re-render, no relayout, no canvas repaint. Measured with a loaded 200k-sample
+  capture: `debug.snapshot()` deep-equal across a switch (minus the `theme` field), and
+  a full-viewport screenshot byte-identical across a default->dark->default round-trip.
+  A running capture differs from a loaded one only by more canvas paints of the same
+  frozen palette, which the theme never touches.
