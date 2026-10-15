@@ -37,7 +37,7 @@ import { formatCount, formatDuration, formatFreq, formatRate,
   formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from './format.js';
 import { applyStaticI18n, getLocale, LOCALE_LABELS, LOCALES, onLocaleChange, setLocale, t,
   type Locale, type MessageKey, type MessageVars } from './i18n.js';
-import { getTheme, onThemeChange, setTheme, THEME_LABEL_KEYS, THEMES, type ThemeId } from './theme.js';
+import { getTheme, onThemeChange, setTheme, type ThemeId } from './theme.js';
 import { SettingsMenu, type SettingsMenuItem } from './settingsMenu.js';
 import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
 import { Overlay, type HoverMeasurement } from './overlay.js';
@@ -819,17 +819,9 @@ export class App {
           onPick: () => { void setLocale(l).then((r) => { if (r === 'failed') this.fail('error.localeLoad', l); }); },
         })),
       },
-      {
-        label: t('settings.theme'),
-        hint: `${t(THEME_LABEL_KEYS[getTheme()])} ▸`,
-        children: THEMES.map((id) => ({
-          label: t(THEME_LABEL_KEYS[id]),
-          checked: id === getTheme(),
-          // Synchronous (no catalog to fetch): the attribute, the persistence write
-          // and the notification all happen inside setTheme.
-          onPick: () => setTheme(id),
-        })),
-      },
+      // No theme row: dark is the only shipping look and the picker is retired.
+      // The machinery stays intact and reachable via debug.setTheme, so re-showing
+      // the row here is a one-item revert.
     ];
   }
 
