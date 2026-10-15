@@ -742,6 +742,32 @@ html[data-theme="dark"] .usb-console-output { border-color: var(--input); }
    with the channel rows; an inset box-shadow paints UNDER the child canvases and is
    invisible; a radius reveals the body's identical background. Contrast wins. */
 
+/* Dark theme: scrollbars stop shouting. The stock overlay/native bar painted a
+   bright track+thumb against the shell; here the track is transparent and the
+   thumb is a slim rounded --border-high (15% white) that only brightens to
+   --muted-foreground under the pointer. 8px [CHOSEN]: about half the native width,
+   still grabbable. Firefox takes scrollbar-width/scrollbar-color, WebKit/Blink the
+   pseudo-elements; tokens only, no literals, per the dark-rule discipline. The
+   console output keeps its native bar this round (an embedded surface, not chrome). */
+html[data-theme="dark"] #scroll-area,
+html[data-theme="dark"] #side-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-high) transparent;
+}
+html[data-theme="dark"] #scroll-area::-webkit-scrollbar,
+html[data-theme="dark"] #side-panel::-webkit-scrollbar { width: 8px; height: 8px; }
+html[data-theme="dark"] #scroll-area::-webkit-scrollbar-thumb,
+html[data-theme="dark"] #side-panel::-webkit-scrollbar-thumb {
+  background: var(--border-high);
+  border-radius: 999px;
+}
+html[data-theme="dark"] #scroll-area::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] #side-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+html[data-theme="dark"] #scroll-area::-webkit-scrollbar-track,
+html[data-theme="dark"] #side-panel::-webkit-scrollbar-track { background: transparent; }
+
 /* ---------------------------------------------------------------- status bar */
 
 #status {
