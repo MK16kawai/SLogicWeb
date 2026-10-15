@@ -183,6 +183,17 @@ html, body {
 }
 #toolbar button:hover, .pill:hover, .mini:hover { background: var(--panel); }
 button:disabled { opacity: 0.45; cursor: default; }
+/* Pressed feedback for every button, momentary or toggle: an inset black veil darkens
+   WHATEVER background is currently showing - base, hover, .on/.active, .primary,
+   .danger, or the inline channel colour of a .chip - so one rule covers all families
+   in both themes, and being additive (box-shadow) it composes over :hover with no
+   cascade-order fragility. [CHOSEN] 25% black: readable on the darkest surfaces
+   (--bg20/--secondary) without washing out the bright channel chips. The 999px spread
+   covers the widest button (full-width .settings-item rows) and clips to the border
+   box, so the overshoot is free. A disabled native button never matches :active, so
+   the disabled look needs no guard; no button class sets its own box-shadow, and the
+   dark focus ring is outline-based, so the veil clobbers neither. */
+button:active { box-shadow: inset 0 0 0 999px rgb(0 0 0 / 25%); }
 .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .danger { background: var(--stop); border-color: var(--stop); color: #fff; }
 .mini { padding: 1px 6px; font-size: 11px; }
