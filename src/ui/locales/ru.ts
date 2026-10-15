@@ -169,6 +169,7 @@ export const ru: Messages = {
   'settings.title': 'Настройки',
   'settings.titleHint': 'Язык и параметры отображения',
   'settings.language': 'Язык',
+  'settings.theme': 'Тема',
 
   // ------------------------------------------------------------ theme
   'theme.default': 'По умолчанию',

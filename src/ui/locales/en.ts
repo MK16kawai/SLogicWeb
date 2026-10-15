@@ -173,6 +173,7 @@ export const en = {
   'settings.title': 'Settings',
   'settings.titleHint': 'Language and display preferences',
   'settings.language': 'Language',
+  'settings.theme': 'Theme',
 
   // ------------------------------------------------------------ theme
   'theme.default': 'Default',

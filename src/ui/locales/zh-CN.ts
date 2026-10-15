@@ -167,6 +167,7 @@ export const zhCN: Messages = {
   'settings.title': '设置',
   'settings.titleHint': '语言与显示偏好',
   'settings.language': '语言',
+  'settings.theme': '主题',
 
   // ------------------------------------------------------------ theme
   'theme.default': '默认',

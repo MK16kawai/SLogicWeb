@@ -37,6 +37,7 @@ import { formatCount, formatDuration, formatFreq, formatRate,
   formatAnalyzerNote, formatCaptureLabel, formatStatusError, formatTriggerSummary } from './format.js';
 import { applyStaticI18n, getLocale, LOCALE_LABELS, LOCALES, onLocaleChange, setLocale, t,
   type Locale, type MessageKey, type MessageVars } from './i18n.js';
+import { getTheme, onThemeChange, setTheme, THEME_LABEL_KEYS, THEMES, type ThemeId } from './theme.js';
 import { SettingsMenu, type SettingsMenuItem } from './settingsMenu.js';
 import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
 import { Overlay, type HoverMeasurement } from './overlay.js';
@@ -191,6 +192,12 @@ export class App {
     // A locale switch is a full re-render pass: every render path is clear-and-rebuild,
     // so re-running them swaps the language with no stale strings anywhere.
     onLocaleChange(() => this.retranslate());
+
+    // A theme switch is chrome-only CSS: no strings or layout depend on it, so nothing
+    // re-renders (a loaded/running capture is untouched). The transient settings menu
+    // would keep a stale checkmark, though, so it closes - same class as 'retranslate':
+    // no focus hand-off for a programmatic switch.
+    onThemeChange(() => this.settingsMenu.close('theme'));
 
     // Observe the scroll viewport, not the plot: the plot's height is now an *output*
     // of relayout (its canvases stack in normal flow so the rows can scroll), and
@@ -809,6 +816,17 @@ export class App {
           onPick: () => { void setLocale(l).then((r) => { if (r === 'failed') this.fail('error.localeLoad', l); }); },
         })),
       },
+      {
+        label: t('settings.theme'),
+        hint: `${t(THEME_LABEL_KEYS[getTheme()])} ▸`,
+        children: THEMES.map((id) => ({
+          label: t(THEME_LABEL_KEYS[id]),
+          checked: id === getTheme(),
+          // Synchronous (no catalog to fetch): the attribute, the persistence write
+          // and the notification all happen inside setTheme.
+          onPick: () => setTheme(id),
+        })),
+      },
     ];
   }
 
@@ -1393,6 +1411,8 @@ export class App {
     connect: () => this.connect(),
     setLocale: (l: Locale) => setLocale(l),
     getLocale: () => getLocale(),
+    setTheme: (id: ThemeId) => setTheme(id),
+    getTheme: () => getTheme(),
     start: () => this.startCapture(),
     stop: () => this.stopCapture(),
     attach: (id: string, ch: Record<number, number>, opts: Record<string, string | number> = {}) =>
@@ -1477,6 +1497,7 @@ export class App {
     },
     snapshot: () => ({
       label: formatCaptureLabel(this.captureLabel),
+      theme: getTheme(),
       error: this.statusError ? formatStatusError(this.statusError) : '',
       running: this.running,
       stopping: this.stopping,
