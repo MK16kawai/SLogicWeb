@@ -163,6 +163,17 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
     kvRows,
     `nameTriggerRows=${(dialogSource.match(/channel-settings-field channel-settings-kv/g) ?? []).length}, colorLast=${dialogSource.includes('fields.append(nameField, triggerField, colorField);')}`);
 
+  const colorGrid = dialogSource.includes('for (const color of CHANNEL_COLOR_PRESETS)') &&
+    dialogSource.includes('colorGrid.appendChild(this.customColorButton);') &&
+    dialogSource.includes("this.colorPalette.setAttribute('popover', 'auto');") &&
+    dialogSource.includes("this.customColorButton.setAttribute('popovertarget', this.colorPalette.id);") &&
+    dialogSource.includes('colorField.append(this.colorLabel, colorGrid, this.colorPalette);') &&
+    dialogSource.includes('this.selectedColor = cell.channel.color;') &&
+    dialogSource.includes('color: this.selectedColor,');
+  check('15 presets plus one custom Popover keep the existing atomic color payload',
+    colorGrid,
+    `presetGridAndCustomPopover=${colorGrid}`);
+
   const descriptionRemoved = !dialogSource.includes('aria-describedby') &&
     !dialogSource.includes('channel-settings-description') &&
     !dialogSource.includes('channels.dialogDescription') &&

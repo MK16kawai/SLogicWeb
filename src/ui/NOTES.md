@@ -835,7 +835,26 @@ the draft on `input`, and closes/returns focus on `change`. Opening a saved pres
 its button; any other saved value selects custom. Dialog close and Submit both hide the
 Popover before proceeding, and only Submit reaches App.
 
-**Validation pending.** Exact node checks must pin 15 unique presets and unchanged default
-cycles. Chrome must prove 16 cells in two rows of eight, preset/custom Save and cancel,
-non-preset reopen, Popover position/radius/focus, keyboard dismissal, narrow overflow and
-existing color propagation.
+**Result: HELD.** [MEASURED] in the combined headless-Chrome scene: 17/17 checks passed,
+including every Pair-1/2 regression. The grid had 16 cells in exactly two rows of eight at
+1280x800 and 320x700. A #F472B6 preset and arbitrary #12AB34 custom color each reached the
+card and Digital chip, retained the trigger mode, and reopened with the correct
+preset-versus-custom selection. Cancel, real light dismiss and two-stage Escape discarded
+drafts; the first Escape closed only the Popover and the second closed the outer dialog
+and restored gear focus.
+
+The open Popover remained modal-owned, focused its native color input and used a measured
+7.5 px radius with a 220x82 px box. At 320 px it stayed inside the viewport
+(left=100, top=457, right=320, bottom=539). No uncaught page error occurred.
+
+Through the tracked `fixtures/i2c.sr` loading path, three exact waveform PNG checks also
+passed: D0 contained 797 #F472B6 pixels after preset Save; after custom Save it contained
+790 #12AB34 pixels and zero remaining pink pixels; untouched D1 retained 791 #FF9E2C
+pixels and zero green pixels. The browser-owned OS color chooser surface itself was not
+automated; the shipping input was exercised through its standard input/change events,
+while the Popover, draft lifecycle and downstream rendering were measured.
+
+Node checks passed with 21/21 channel-layout results, 28/28 i18n results with the custom
+color label in translated probes, and 14/14 theme results including 15 unique valid
+presets and unchanged UI/renderer defaults. `tsc --noEmit` and the production Vite build
+also passed; only the pre-existing chunk-size warning remained.

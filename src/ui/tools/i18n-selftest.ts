@@ -364,7 +364,7 @@ const baseSettings: CaptureSettings = {
   // clean FAIL, not a crash.
   const probes: (keyof Messages)[] = [
     'toolbar.start', 'settings.language', 'settings.theme', 'trigger.anyEdge',
-    'channels.settings', 'channels.name', 'channels.color',
+    'channels.settings', 'channels.name', 'channels.color', 'channels.customColor',
     'channels.triggerMode', 'channels.cancel',
   ];
   const dicts: Record<string, Messages | undefined> = { 'zh-CN': zhCN, ru, fr };

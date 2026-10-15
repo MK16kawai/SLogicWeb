@@ -37,7 +37,7 @@
 
 import { LOGIC2_CHANNEL_COLORS } from '../../render/index.js';
 import { en } from '../locales/en.js';
-import { CHANNEL_COLORS, ROWS } from '../metrics.js';
+import { CHANNEL_COLORS, CHANNEL_COLOR_PRESETS, ROWS } from '../metrics.js';
 import { defaultChannels } from '../state.js';
 import {
   getTheme, initTheme, onThemeChange, pickTheme, setTheme,
@@ -98,6 +98,14 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   check('default channel state preserves the exact UI and renderer color cycles',
     defaultsMatch && palettesMatch,
     `defaultsMatch=${defaultsMatch}, palettesMatch=${palettesMatch}, channels=${channels.length}`);
+
+  const presetCount = CHANNEL_COLOR_PRESETS.length;
+  const unique = new Set(CHANNEL_COLOR_PRESETS).size === presetCount;
+  const valid = CHANNEL_COLOR_PRESETS.every((color) => /^#[0-9A-F]{6}$/.test(color));
+  const defaultsFirst = CHANNEL_COLORS.every((color, index) => CHANNEL_COLOR_PRESETS[index] === color);
+  check('the dialog has 15 unique valid presets with the unchanged defaults first',
+    presetCount === 15 && unique && valid && defaultsFirst,
+    `count=${presetCount}, unique=${unique}, valid=${valid}, defaultsFirst=${defaultsFirst}`);
 }
 
 // ------------------------------------------------------------------ pickTheme
