@@ -20,7 +20,7 @@ import { MAX_SOFTWARE_TRIGGER_PREFIX_BYTES } from '../data/index.js';
 import { bytesPerSampleForChannels } from '../types.js';
 import { formatDuration, formatRate } from './format.js';
 import { t } from './i18n.js';
-import { channelColor, type CaptureSettings, type ChannelState } from './state.js';
+import type { CaptureSettings, ChannelState } from './state.js';
 import { MAX_SAMPLES } from './captureIO.js';
 
 const THRESHOLDS = [0.6, 0.9, 1.2, 1.5, 1.65, 1.8, 2.5, 3.3];
@@ -91,10 +91,10 @@ export class CapturePanel {
       chip.textContent = String(c.index);
       chip.title = c.name;
       if (c.enabled) {
-        chip.style.background = channelColor(c.index);
+        chip.style.background = c.color;
         chip.style.color = '#141415';
       } else {
-        chip.style.color = channelColor(c.index);
+        chip.style.color = c.color;
       }
       chip.addEventListener('click', () => this.cb.onToggleChannel(c.index, !c.enabled));
       grid.appendChild(chip);

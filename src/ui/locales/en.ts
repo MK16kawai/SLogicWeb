@@ -86,6 +86,7 @@ export const en = {
   'channels.settings': 'D{index} settings',
   'channels.dialogDescription': 'Edit channel settings.',
   'channels.name': 'Channel name',
+  'channels.color': 'Channel color',
   'channels.triggerMode': 'Trigger mode',
   'channels.cancel': 'Cancel',
   'channels.removeAnalyzer': 'Remove {label}',

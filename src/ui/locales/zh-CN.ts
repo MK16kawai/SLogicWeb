@@ -80,6 +80,7 @@ export const zhCN: Messages = {
   'channels.settings': 'D{index} 设置',
   'channels.dialogDescription': '编辑通道设置。',
   'channels.name': '通道名称',
+  'channels.color': '通道颜色',
   'channels.triggerMode': '触发模式',
   'channels.cancel': '取消',
   'channels.removeAnalyzer': '移除 {label}',

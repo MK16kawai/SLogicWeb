@@ -16,6 +16,8 @@ export interface ChannelState {
   /** Capture channel index, i.e. D<index>. Never changes; display order does. */
   index: number;
   name: string;
+  /** #rrggbb; defaults to channelColor(index), editable for the current capture. */
+  color: string;
   enabled: boolean;
 }
 
@@ -119,6 +121,7 @@ export function defaultChannels(n: number): ChannelState[] {
   return Array.from({ length: n }, (_, i) => ({
     index: i,
     name: '',
+    color: channelColor(i),
     enabled: true,
   }));
 }

@@ -18,19 +18,20 @@
  * margin and a reserved one-line decoder strip - see src/ui/NOTES.md section 13.
  *
  * Names are read-only in the row. One gear button opens a native modal whose shadcn-style
- * header / field group / footer owns both name and trigger editing, so the card no longer
- * carries three independent editing controls.
+ * header / field group / footer owns name, trigger and color editing, so the card no
+ * longer carries three independent editing controls.
  */
 
 import { button, div } from './capturePanel.js';
 import { formatAnalyzerNote } from './format.js';
 import { t } from './i18n.js';
 import { COLORS } from './metrics.js';
-import { channelColor, type AnalyzerState, type ChannelState, type TriggerMode } from './state.js';
+import type { AnalyzerState, ChannelState, TriggerMode } from './state.js';
 
 export interface ChannelConfiguration {
   name: string;
   mode: TriggerMode;
+  color: string;
 }
 
 export interface ChannelCell {
@@ -77,6 +78,8 @@ class ChannelSettingsDialog {
   private readonly description: HTMLParagraphElement;
   private readonly nameLabel: HTMLLabelElement;
   private readonly nameInput: HTMLInputElement;
+  private readonly colorLabel: HTMLLabelElement;
+  private readonly colorInput: HTMLInputElement;
   private readonly triggerLegend: HTMLLegendElement;
   private readonly triggerFieldset: HTMLFieldSetElement;
   private readonly cancelButton: HTMLButtonElement;
@@ -132,7 +135,16 @@ class ChannelSettingsDialog {
       this.triggerOptions.set(mode, { label, input });
     }
 
-    fields.append(nameField, this.triggerFieldset);
+    const colorField = div('channel-settings-field');
+    this.colorLabel = document.createElement('label');
+    this.colorLabel.htmlFor = 'channel-settings-color';
+    this.colorInput = document.createElement('input');
+    this.colorInput.id = 'channel-settings-color';
+    this.colorInput.className = 'channel-settings-color';
+    this.colorInput.type = 'color';
+    colorField.append(this.colorLabel, this.colorInput);
+
+    fields.append(nameField, this.triggerFieldset, colorField);
 
     const footer = div('channel-settings-actions');
     this.cancelButton = button('', 'channel-settings-cancel');
@@ -166,6 +178,7 @@ class ChannelSettingsDialog {
     this.anchor = anchor;
     this.renderStrings(cell.channel.index);
     this.nameInput.value = cell.channel.name;
+    this.colorInput.value = cell.channel.color;
     this.triggerFieldset.disabled = cell.trigger.disabled;
     for (const [mode, option] of this.triggerOptions) {
       option.input.checked = mode === cell.trigger.mode;
@@ -183,6 +196,7 @@ class ChannelSettingsDialog {
     this.title.textContent = t('channels.settings', { index: channel });
     this.description.textContent = t('channels.dialogDescription');
     this.nameLabel.textContent = t('channels.name');
+    this.colorLabel.textContent = t('channels.color');
     this.triggerLegend.textContent = t('channels.triggerMode');
     this.cancelButton.textContent = t('channels.cancel');
     this.saveButton.textContent = t('toolbar.save');
@@ -199,7 +213,9 @@ class ChannelSettingsDialog {
     const channel = this.channel;
     const mode = TRIGGER_MODES.find((candidate) =>
       this.triggerOptions.get(candidate)?.input.checked) ?? 'dont-care';
-    const config: ChannelConfiguration = { name: this.nameInput.value.trim(), mode };
+    const config: ChannelConfiguration = {
+      name: this.nameInput.value.trim(), mode, color: this.colorInput.value,
+    };
 
     // Close before App re-renders and replaces the anchor. Clear our references first so
     // the subsequent render cannot mistake this commit for a draft dismissal.
@@ -258,7 +274,7 @@ export class ChannelList {
 
       const strip = document.createElement('div');
       strip.className = 'ch-strip';
-      strip.style.background = channelColor(cell.channel.index);
+      strip.style.background = cell.channel.color;
       card.appendChild(strip);
 
       const body = document.createElement('div');
@@ -270,7 +286,7 @@ export class ChannelList {
       const tag = document.createElement('span');
       tag.className = 'ch-tag';
       tag.textContent = `D${cell.channel.index}`;
-      tag.style.color = channelColor(cell.channel.index);
+      tag.style.color = cell.channel.color;
       head.appendChild(tag);
 
       const name = document.createElement('span');

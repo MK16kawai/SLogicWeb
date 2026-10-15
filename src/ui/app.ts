@@ -228,12 +228,12 @@ export class App {
     return this.order.map((i) => this.channels[i]!).filter((c) => c.enabled);
   }
 
-  /** Commit one channel-dialog draft. Name metadata stays editable during capture,
-   * while trigger modes retain the existing running/stopping lock. */
+  /** Commit one channel-dialog draft. Name and color metadata stay editable during
+   * capture, while trigger modes retain the existing running/stopping lock. */
   private configureChannel(channel: number, config: ChannelConfiguration): void {
     const current = this.channels[channel];
     if (!current) return;
-    this.channels[channel] = { ...current, name: config.name };
+    this.channels[channel] = { ...current, name: config.name, color: config.color };
 
     if (!this.running && !this.stopping) {
       const triggerModes = { ...this.settings.triggerModes, [channel]: config.mode };
@@ -271,9 +271,10 @@ export class App {
     const plotH = Math.max(120, (this.el.scroll.clientHeight || 630) - axisH);
     const enabled = this.enabledChannels();
     this.lanes = this.computeLanes(enabled);
+    const channelColors = this.channels.map((channel) => channel.color);
 
     if (enabled.length === 0) {
-      this.stack.setRows([]);
+      this.stack.setRows([], channelColors);
       this.channelList.render([]);
       this.dirty = true;
       return;
@@ -304,7 +305,7 @@ export class App {
       });
     }
 
-    this.stack.setRows(rows);
+    this.stack.setRows(rows, channelColors);
     this.channelList.render(cells);
     this.dirty = true;
   }
@@ -766,7 +767,7 @@ export class App {
       pointerX: cssX,
       rowTop: box.top,
       rowBand: box.band,
-      color: channelColor(ch),
+      color: this.channels[ch]?.color ?? channelColor(ch),
       widthX0, widthX1, periodX0, periodX1,
       lines,
     };
@@ -1444,8 +1445,11 @@ export class App {
     hoverAt: (cssX: number, cssY: number) => this.updateHover(cssX, cssY),
     toggleChannel: (i: number, on: boolean) => this.setChannelEnabled(i, on),
     rename: (i: number, name: string) => {
-      if (this.channels[i]) {
-        this.configureChannel(i, { name, mode: this.settings.triggerModes[i] ?? 'dont-care' });
+      const current = this.channels[i];
+      if (current) {
+        this.configureChannel(i, {
+          name, mode: this.settings.triggerModes[i] ?? 'dont-care', color: current.color,
+        });
       }
     },
     reorder: (from: number, to: number) => this.reorder(from, to),

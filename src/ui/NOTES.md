@@ -694,3 +694,28 @@ source-integrity guards for row structure, native-modal save and listener-free c
 paths), 27/27 i18n checks with the new labels added to the translated-probe set, and
 `tsc --noEmit`. No decoder was attached in this pass, so annotation-lane alignment is
 covered by the existing layout checks rather than a new decoded browser scene.
+
+## 16. Per-channel colors through the same settings dialog
+
+**Prediction, recorded before the color browser checks.** Moving the default
+`channelColor(index)` result into `ChannelState.color` should be behavior-neutral for
+untouched channels. Passing one absolute-channel-index palette to every
+`WaveformRenderer` through its existing `setTheme()` API should then make a dialog color
+edit agree across the card, Digital chip, waveform and hover marker, including after
+reorder and across 16-row canvas groups. No renderer implementation or capture-format
+change should be necessary.
+
+**Implementation, before measurement.** `defaultChannels()` initializes the required
+color field from the unchanged eight-color cycle. The native color input joins name and
+trigger in the existing atomic dialog payload. Row strips/tags and Digital chips now read
+the channel object rather than recalculating by index; hover uses the same object with a
+loud default fallback for an absent channel. `WaveformStack.setRows()` accepts the
+index-aligned palette, applies it when constructing renderer groups, and refreshes
+existing groups with `setTheme({ ...DARK_THEME, channelColors })`. Capture replacement
+still creates default channel models, so colors are session-only and no file version
+changes.
+
+**Validation pending.** Exact default-palette checks and a loaded-capture browser scene
+must prove that a distinctive edited color reaches every consumer while untouched
+channels remain byte-identical. Cancel/draft behavior, running/stopping metadata edits,
+reorder, multi-canvas alignment and all Pair-1 checks must remain green.
