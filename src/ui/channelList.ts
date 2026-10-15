@@ -25,7 +25,7 @@
 import { button, div } from './capturePanel.js';
 import { formatAnalyzerNote } from './format.js';
 import { t } from './i18n.js';
-import { COLORS } from './metrics.js';
+import { CHANNEL_COLOR_PRESETS, COLORS } from './metrics.js';
 import { DEFAULT_TRIGGER_MODE,
   type AnalyzerState, type ChannelState, type TriggerMode } from './state.js';
 
@@ -78,8 +78,13 @@ class ChannelSettingsDialog {
   private readonly title: HTMLHeadingElement;
   private readonly nameLabel: HTMLLabelElement;
   private readonly nameInput: HTMLInputElement;
-  private readonly colorLabel: HTMLLabelElement;
+  private readonly colorLabel: HTMLSpanElement;
   private readonly colorInput: HTMLInputElement;
+  private readonly paletteLabel: HTMLLabelElement;
+  private readonly colorPalette: HTMLDivElement;
+  private readonly customColorButton: HTMLButtonElement;
+  private readonly presetColorButtons = new Map<string, HTMLButtonElement>();
+  private selectedColor = '#000000';
   private readonly triggerLabel: HTMLSpanElement;
   private readonly triggerFieldset: HTMLFieldSetElement;
   private readonly cancelButton: HTMLButtonElement;
@@ -138,14 +143,68 @@ class ChannelSettingsDialog {
     triggerField.append(this.triggerLabel, this.triggerFieldset);
 
     const colorField = div('channel-settings-field channel-settings-color-field');
-    this.colorLabel = document.createElement('label');
+    this.colorLabel = document.createElement('span');
     this.colorLabel.className = 'channel-settings-copy';
-    this.colorLabel.htmlFor = 'channel-settings-color';
+    this.colorLabel.id = 'channel-settings-color-label';
+    const colorGrid = div('channel-color-grid');
+    colorGrid.setAttribute('role', 'group');
+    colorGrid.setAttribute('aria-labelledby', this.colorLabel.id);
+    for (const color of CHANNEL_COLOR_PRESETS) {
+      const preset = button('', 'channel-color-swatch channel-color-preset');
+      preset.type = 'button';
+      preset.title = color;
+      preset.setAttribute('aria-label', color);
+      preset.setAttribute('aria-pressed', 'false');
+      preset.style.background = color;
+      preset.addEventListener('click', () => {
+        this.selectedColor = color;
+        this.syncColorSelection();
+        this.hideColorPalette();
+      });
+      colorGrid.appendChild(preset);
+      this.presetColorButtons.set(color, preset);
+    }
+
+    this.customColorButton = button('', 'channel-color-swatch channel-color-custom');
+    this.customColorButton.type = 'button';
+    this.customColorButton.setAttribute('aria-pressed', 'false');
+    const customMark = document.createElement('span');
+    customMark.className = 'channel-color-custom-mark';
+    customMark.setAttribute('aria-hidden', 'true');
+    customMark.textContent = '+';
+    this.customColorButton.appendChild(customMark);
+    colorGrid.appendChild(this.customColorButton);
+
+    this.colorPalette = document.createElement('div');
+    this.colorPalette.className = 'channel-color-palette';
+    this.colorPalette.id = 'channel-color-palette';
+    this.colorPalette.setAttribute('popover', 'auto');
+    this.colorPalette.setAttribute('role', 'group');
+    this.customColorButton.setAttribute('popovertarget', this.colorPalette.id);
+    this.paletteLabel = document.createElement('label');
+    this.paletteLabel.className = 'channel-color-palette-label';
+    this.paletteLabel.id = 'channel-custom-color-label';
+    this.paletteLabel.htmlFor = 'channel-settings-color';
+    this.colorPalette.setAttribute('aria-labelledby', this.paletteLabel.id);
     this.colorInput = document.createElement('input');
     this.colorInput.id = 'channel-settings-color';
     this.colorInput.className = 'channel-settings-color';
     this.colorInput.type = 'color';
-    colorField.append(this.colorLabel, this.colorInput);
+    this.colorInput.addEventListener('input', () => {
+      this.selectedColor = this.colorInput.value;
+      this.syncColorSelection();
+    });
+    this.colorInput.addEventListener('change', () => {
+      this.selectedColor = this.colorInput.value;
+      this.syncColorSelection();
+      this.hideColorPalette();
+      this.customColorButton.focus();
+    });
+    this.colorPalette.addEventListener('toggle', () => {
+      if (this.colorPalette.matches(':popover-open')) this.colorInput.focus();
+    });
+    this.colorPalette.append(this.paletteLabel, this.colorInput);
+    colorField.append(this.colorLabel, colorGrid, this.colorPalette);
 
     fields.append(nameField, triggerField, colorField);
 
@@ -186,7 +245,8 @@ class ChannelSettingsDialog {
     this.anchor = anchor;
     this.renderStrings(cell.channel.index);
     this.nameInput.value = cell.channel.name;
-    this.colorInput.value = cell.channel.color;
+    this.selectedColor = cell.channel.color;
+    this.syncColorSelection();
     this.triggerFieldset.disabled = cell.trigger.disabled;
     for (const [mode, option] of this.triggerOptions) {
       option.input.checked = mode === cell.trigger.mode;
@@ -204,6 +264,9 @@ class ChannelSettingsDialog {
     this.title.textContent = t('channels.settings', { index: channel });
     this.nameLabel.textContent = t('channels.name');
     this.colorLabel.textContent = t('channels.color');
+    this.paletteLabel.textContent = t('channels.customColor');
+    this.customColorButton.title = t('channels.customColor');
+    this.customColorButton.setAttribute('aria-label', t('channels.customColor'));
     this.triggerLabel.textContent = t('channels.triggerMode');
     this.cancelButton.textContent = t('channels.cancel');
     this.saveButton.textContent = t('toolbar.save');
@@ -214,6 +277,25 @@ class ChannelSettingsDialog {
     }
   }
 
+  private syncColorSelection(): void {
+    const selected = this.selectedColor.toLowerCase();
+    let presetSelected = false;
+    for (const [color, preset] of this.presetColorButtons) {
+      const active = color.toLowerCase() === selected;
+      presetSelected ||= active;
+      preset.classList.toggle('selected', active);
+      preset.setAttribute('aria-pressed', String(active));
+    }
+    this.customColorButton.classList.toggle('selected', !presetSelected);
+    this.customColorButton.setAttribute('aria-pressed', String(!presetSelected));
+    this.customColorButton.style.background = this.selectedColor;
+    this.colorInput.value = this.selectedColor;
+  }
+
+  private hideColorPalette(): void {
+    if (this.colorPalette.matches(':popover-open')) this.colorPalette.hidePopover();
+  }
+
   private readonly onSubmit = (event: SubmitEvent): void => {
     event.preventDefault();
     if (this.channel < 0) return;
@@ -221,11 +303,12 @@ class ChannelSettingsDialog {
     const mode = TRIGGER_MODES.find((candidate) =>
       this.triggerOptions.get(candidate)?.input.checked) ?? DEFAULT_TRIGGER_MODE;
     const config: ChannelConfiguration = {
-      name: this.nameInput.value.trim(), mode, color: this.colorInput.value,
+      name: this.nameInput.value.trim(), mode, color: this.selectedColor,
     };
 
     // Close before App re-renders and replaces the anchor. Clear our references first so
     // the subsequent render cannot mistake this commit for a draft dismissal.
+    this.hideColorPalette();
     this.channel = -1;
     this.anchor = null;
     this.dialog.close();
@@ -234,6 +317,7 @@ class ChannelSettingsDialog {
   };
 
   private dismiss(restoreFocus: boolean): void {
+    this.hideColorPalette();
     const anchor = this.anchor;
     this.channel = -1;
     this.anchor = null;

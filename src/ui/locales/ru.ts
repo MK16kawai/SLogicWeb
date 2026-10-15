@@ -82,6 +82,7 @@ export const ru: Messages = {
   'channels.settings': 'Настройки D{index}',
   'channels.name': 'Имя канала',
   'channels.color': 'Цвет канала',
+  'channels.customColor': 'Пользовательский цвет',
   'channels.triggerMode': 'Режим триггера',
   'channels.cancel': 'Отмена',
   'channels.removeAnalyzer': 'Удалить {label}',

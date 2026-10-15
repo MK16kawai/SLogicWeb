@@ -35,6 +35,23 @@ export const CHANNEL_COLORS: readonly string[] = [
   '#9AA0A6', // D8k+7 grey
 ];
 
+/**
+ * [CHOSEN] Dialog preset colors. The existing eight defaults come first so familiar
+ * channel colors are always one click away; seven bright additions widen the hue range
+ * while remaining visible on the dark plot. This is picker content only, not a second
+ * default cycle: CHANNEL_COLORS and LOGIC2_CHANNEL_COLORS stay unchanged.
+ */
+export const CHANNEL_COLOR_PRESETS: readonly string[] = [
+  ...CHANNEL_COLORS,
+  '#FB7185', // rose
+  '#F472B6', // pink
+  '#E879F9', // fuchsia
+  '#C084FC', // purple
+  '#818CF8', // indigo
+  '#22D3EE', // cyan
+  '#2DD4BF', // teal
+];
+
 /** [CHOSEN] . */
 export const COLORS = {
   /** Darkest background, used for the toolbar's inactive areas. */

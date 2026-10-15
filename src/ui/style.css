@@ -427,11 +427,69 @@ html[data-theme="dark"] .ch-cell.drop-target .ch-card {
   border-radius: calc(var(--radius) - 4px);
 }
 .channel-settings-name { min-width: 0; padding: 5px 8px; font: inherit; }
-/* [CHOSEN] a full-width 32px native swatch keeps the current color obvious without
-   adding a separate preview element or a custom picker. */
+/* [CHOSEN] The custom Popover keeps a full-width 32px native swatch for arbitrary
+   #rrggbb input; the outer preset grid stays independent of native picker geometry. */
 .channel-settings-color { height: 32px; padding: 2px 4px; cursor: pointer; }
 .channel-settings-name:focus-visible,
 .channel-settings-color:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* [CHOSEN] Eight flexible columns keep exactly two rows at every dialog width; 6px
+   separates swatches without letting the narrow 320px scene overflow. */
+.channel-color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+.channel-color-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 30px;
+  padding: 0;
+  background: var(--background);
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) - 4px);
+  cursor: pointer;
+}
+.channel-color-swatch:hover { border-color: var(--primary); }
+.channel-color-swatch.selected,
+.channel-color-swatch:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.channel-color-custom { anchor-name: --channel-color-custom; }
+/* [CHOSEN] A token-backed 14px badge keeps + readable over any custom swatch color. */
+.channel-color-custom-mark {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+/* [SOURCE] shadcn Popover anatomy and semantic roles, translated to the native top
+   layer. [CHOSEN] 220px content width and 6px anchor offset; no manual z-index. */
+.channel-color-palette {
+  position: fixed;
+  inset: auto;
+  position-anchor: --channel-color-custom;
+  position-area: bottom center;
+  position-try-fallbacks: flip-block, flip-inline;
+  width: 220px;
+  max-width: calc(100vw - 16px);
+  margin: 6px 0;
+  padding: 12px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+}
+.channel-color-palette:popover-open { display: flex; flex-direction: column; gap: 8px; }
+.channel-color-palette-label { color: var(--muted-foreground); font-size: 11px; line-height: 16px; }
 .channel-trigger-options {
   min-width: 0;
   margin: 0;
@@ -529,7 +587,8 @@ html[data-theme="dark"] .settings-item:hover,
 html[data-theme="dark"] .settings-item.open { background: var(--muted); color: var(--foreground); }
 html[data-theme="dark"] .settings-check { color: var(--primary); }
 html[data-theme="dark"] .settings-hint { color: var(--muted-foreground); }
-html[data-theme="dark"] .channel-settings-dialog { box-shadow: 0 8px 24px var(--shadow); }
+html[data-theme="dark"] .channel-settings-dialog,
+html[data-theme="dark"] .channel-color-palette { box-shadow: 0 8px 24px var(--shadow); }
 
 .ch-analyzer {
   display: flex;

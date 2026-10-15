@@ -82,6 +82,7 @@ export const fr: Messages = {
   'channels.settings': 'Paramètres de D{index}',
   'channels.name': 'Nom du canal',
   'channels.color': 'Couleur du canal',
+  'channels.customColor': 'Couleur personnalisée',
   'channels.triggerMode': 'Mode de trigger',
   'channels.cancel': 'Annuler',
   'channels.removeAnalyzer': 'Retirer {label}',

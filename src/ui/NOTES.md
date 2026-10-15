@@ -816,3 +816,26 @@ error occurred.
 Node checks passed with 20/20 channel-layout results, including exact six-mode mapping,
 round-trip, sorted mixed-condition and shared-default tables; 28/28 i18n results with
 `trigger.anyEdge` added to the translated probes; and `tsc --noEmit`.
+
+## 19. Preset color grid and a custom-color Popover
+
+**Prediction, recorded before the color-grid browser checks.** Fifteen preset buttons plus
+one custom invoker in an eight-column CSS grid should produce exactly two rows at both
+desktop and narrow widths. A native Popover anchored to the 16th swatch can provide
+shadcn-style rounded, token-colored arbitrary color input without document listeners or
+a new dependency. Keeping `selectedColor` as dialog-only draft data and using the existing
+configure callback should leave every card/chip/waveform color consumer unchanged.
+
+**Implementation, before measurement.** `CHANNEL_COLOR_PRESETS` starts with the unchanged
+eight channel defaults and adds seven bright hues. The last vertical field now owns a
+role-labelled 2x8 button grid. Presets use `aria-pressed` and visible ring selection; the
+custom swatch always previews the current draft and carries a token-backed + badge. Its
+native Popover contains the existing full-width color input, focuses it on open, updates
+the draft on `input`, and closes/returns focus on `change`. Opening a saved preset selects
+its button; any other saved value selects custom. Dialog close and Submit both hide the
+Popover before proceeding, and only Submit reaches App.
+
+**Validation pending.** Exact node checks must pin 15 unique presets and unchanged default
+cycles. Chrome must prove 16 cells in two rows of eight, preset/custom Save and cancel,
+non-preset reopen, Popover position/radius/focus, keyboard dismissal, narrow overflow and
+existing color propagation.
