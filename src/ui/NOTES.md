@@ -715,7 +715,29 @@ existing groups with `setTheme({ ...DARK_THEME, channelColors })`. Capture repla
 still creates default channel models, so colors are session-only and no file version
 changes.
 
-**Validation pending.** Exact default-palette checks and a loaded-capture browser scene
-must prove that a distinctive edited color reaches every consumer while untouched
-channels remain byte-identical. Cancel/draft behavior, running/stopping metadata edits,
-reorder, multi-canvas alignment and all Pair-1 checks must remain green.
+**Result: HELD.** [MEASURED] through the normal `i2c.sr` capture-loading path in
+headless Chrome. The combined Pair-1 and color run passed 40/40 checks. A #12ab34 edit
+reached the native color field, card strip/tag, enabled and disabled Digital chips,
+real-pointer hover color and both renderer groups. Cancel discarded color with the other
+draft fields; reopening restored the saved value. Reorder moved D0 and its color together.
+One decoded I2C lane produced two visible canvases, each with the custom absolute-index
+palette. Running and stopping separately left name/color enabled, locked trigger choices,
+and propagated another color to both groups without changing the stored trigger. Capture
+replacement restored D0 #FF4D4D and D1 #FF9E2C.
+
+Seven independent PNG pixel checks also passed. In the default scene D0 contained 779
+exact #FF4D4D pixels and D1 contained 773 #FF9E2C pixels. After Save, D0 contained 773
+exact #12AB34 pixels and zero old-red pixels while D1 stayed orange. After reorder, the
+first row was orange and the second row contained those 773 green pixels, proving the
+waveform follows capture channel rather than row position.
+
+The first color-harness run was not accepted as evidence: it contained three setup
+mistakes (a previous locale still active, a detached chip read after re-render, and UART
+decoding an idle channel). The harness was corrected to restore English, reacquire the
+chip, and use the known I2C capture/channels; no production defect was found on the
+successful rerun. As in section 15, running/stopping were injected state preconditions,
+not a hardware capture lifecycle.
+
+Node checks passed with 13/13 channel-layout results, 13/13 theme results (including the
+exact 17-channel UI/renderer default-color cycle), 27/27 i18n results with the color
+label in the translated-probe set, and `tsc --noEmit`.

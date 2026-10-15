@@ -127,6 +127,23 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
   check('dialog dismissal paths need no document or window listeners',
     noGlobalListeners && discardPaths,
     `noGlobalListeners=${noGlobalListeners}, discardPaths=${discardPaths}`);
+
+  const capturePanel = fs.readFileSync('src/ui/capturePanel.ts', 'utf8');
+  const waveformStack = fs.readFileSync('src/ui/waveformStack.ts', 'utf8');
+  const cardColors = rowSource.includes('strip.style.background = cell.channel.color') &&
+    rowSource.includes('tag.style.color = cell.channel.color');
+  const chipColors = capturePanel.includes('chip.style.background = c.color') &&
+    capturePanel.includes('chip.style.color = c.color') &&
+    !capturePanel.includes('channelColor(c.index)');
+  const appPalette = app.includes('const channelColors = this.channels.map((channel) => channel.color)') &&
+    app.includes('this.stack.setRows(rows, channelColors);') &&
+    app.includes('color: this.channels[ch]?.color ?? channelColor(ch)');
+  const rendererPalette = waveformStack.includes(
+    'const theme = { ...DARK_THEME, channelColors: this.channelColors };') &&
+    waveformStack.includes('r.setTheme(theme);');
+  check('custom color flows from channel state through cards, chips, hover, and renderers',
+    cardColors && chipColors && appPalette && rendererPalette,
+    `card=${cardColors}, chips=${chipColors}, app=${appPalette}, renderers=${rendererPalette}`);
 }
 
 console.log(results.map((r) => `${r.pass ? 'PASS' : 'FAIL'}  ${r.name}\n        ${r.detail}`).join('\n'));

@@ -35,8 +35,10 @@
  * 9-10 are read-only file scans and are unaffected by those stubs.
  */
 
+import { LOGIC2_CHANNEL_COLORS } from '../../render/index.js';
 import { en } from '../locales/en.js';
-import { ROWS } from '../metrics.js';
+import { CHANNEL_COLORS, ROWS } from '../metrics.js';
+import { defaultChannels } from '../state.js';
 import {
   getTheme, initTheme, onThemeChange, pickTheme, setTheme,
   THEME_LABEL_KEYS, THEME_STORAGE_KEY, THEMES, type ThemeId,
@@ -83,6 +85,19 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   check('THEMES is exactly default,dark and the storage key is logicweb.theme',
     ids === 'default,dark' && THEME_STORAGE_KEY === 'logicweb.theme',
     `themes=[${ids}], key=${THEME_STORAGE_KEY}`);
+}
+
+// ---------------------------------------------------- default channel colors
+
+{
+  const channels = defaultChannels(17);
+  const defaultsMatch = channels.every((channel, index) =>
+    channel.index === index && channel.color === CHANNEL_COLORS[index % CHANNEL_COLORS.length]);
+  const palettesMatch = CHANNEL_COLORS.length === LOGIC2_CHANNEL_COLORS.length &&
+    CHANNEL_COLORS.every((color, index) => color === LOGIC2_CHANNEL_COLORS[index]);
+  check('default channel state preserves the exact UI and renderer color cycles',
+    defaultsMatch && palettesMatch,
+    `defaultsMatch=${defaultsMatch}, palettesMatch=${palettesMatch}, channels=${channels.length}`);
 }
 
 // ------------------------------------------------------------------ pickTheme
