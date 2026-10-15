@@ -407,11 +407,17 @@ html[data-theme="dark"] .ch-cell.drop-target .ch-card {
 .channel-settings-form { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .channel-settings-header { display: flex; flex-direction: column; gap: 4px; }
 .channel-settings-header h2 { margin: 0; font-size: 14px; line-height: 20px; }
-.channel-settings-header p { margin: 0; color: var(--muted-foreground); }
 .channel-settings-fields { display: flex; flex-direction: column; gap: 12px; }
 .channel-settings-field { display: flex; flex-direction: column; gap: 6px; }
-.channel-settings-field label,
-.channel-trigger-options legend { color: var(--muted-foreground); font-size: 11px; }
+/* [CHOSEN] Horizontal Field anatomy: 104px holds the localized setting name while
+   the flexible control column can shrink and wrap without a new breakpoint. */
+.channel-settings-kv {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.channel-settings-copy { color: var(--muted-foreground); font-size: 11px; line-height: 16px; }
 .channel-settings-name,
 .channel-settings-color {
   width: 100%;
@@ -420,7 +426,7 @@ html[data-theme="dark"] .ch-cell.drop-target .ch-card {
   border: 1px solid var(--input);
   border-radius: calc(var(--radius) - 4px);
 }
-.channel-settings-name { padding: 5px 8px; font: inherit; }
+.channel-settings-name { min-width: 0; padding: 5px 8px; font: inherit; }
 /* [CHOSEN] a full-width 32px native swatch keeps the current color obvious without
    adding a separate preview element or a custom picker. */
 .channel-settings-color { height: 32px; padding: 2px 4px; cursor: pointer; }
@@ -433,9 +439,10 @@ html[data-theme="dark"] .ch-cell.drop-target .ch-card {
   border: 0;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  width: 100%;
   gap: 6px;
 }
-.channel-trigger-options legend { margin-bottom: 6px; }
 .channel-trigger-option {
   position: relative;
   display: inline-flex;

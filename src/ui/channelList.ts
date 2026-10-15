@@ -75,12 +75,11 @@ interface TriggerOption {
 class ChannelSettingsDialog {
   private readonly dialog: HTMLDialogElement;
   private readonly title: HTMLHeadingElement;
-  private readonly description: HTMLParagraphElement;
   private readonly nameLabel: HTMLLabelElement;
   private readonly nameInput: HTMLInputElement;
   private readonly colorLabel: HTMLLabelElement;
   private readonly colorInput: HTMLInputElement;
-  private readonly triggerLegend: HTMLLegendElement;
+  private readonly triggerLabel: HTMLSpanElement;
   private readonly triggerFieldset: HTMLFieldSetElement;
   private readonly cancelButton: HTMLButtonElement;
   private readonly saveButton: HTMLButtonElement;
@@ -95,7 +94,6 @@ class ChannelSettingsDialog {
     this.dialog = document.createElement('dialog');
     this.dialog.className = 'channel-settings-dialog';
     this.dialog.setAttribute('aria-labelledby', 'channel-settings-title');
-    this.dialog.setAttribute('aria-describedby', 'channel-settings-description');
 
     const form = document.createElement('form');
     form.className = 'channel-settings-form';
@@ -103,13 +101,12 @@ class ChannelSettingsDialog {
     const header = div('channel-settings-header');
     this.title = document.createElement('h2');
     this.title.id = 'channel-settings-title';
-    this.description = document.createElement('p');
-    this.description.id = 'channel-settings-description';
-    header.append(this.title, this.description);
+    header.appendChild(this.title);
 
     const fields = div('channel-settings-fields');
-    const nameField = div('channel-settings-field');
+    const nameField = div('channel-settings-field channel-settings-kv');
     this.nameLabel = document.createElement('label');
+    this.nameLabel.className = 'channel-settings-copy';
     this.nameLabel.htmlFor = 'channel-settings-name';
     this.nameInput = document.createElement('input');
     this.nameInput.id = 'channel-settings-name';
@@ -119,10 +116,13 @@ class ChannelSettingsDialog {
     this.nameInput.autocomplete = 'off';
     nameField.append(this.nameLabel, this.nameInput);
 
+    const triggerField = div('channel-settings-field channel-settings-kv');
+    this.triggerLabel = document.createElement('span');
+    this.triggerLabel.className = 'channel-settings-copy';
+    this.triggerLabel.id = 'channel-settings-trigger-label';
     this.triggerFieldset = document.createElement('fieldset');
     this.triggerFieldset.className = 'channel-trigger-options';
-    this.triggerLegend = document.createElement('legend');
-    this.triggerFieldset.appendChild(this.triggerLegend);
+    this.triggerFieldset.setAttribute('aria-labelledby', this.triggerLabel.id);
     for (const mode of TRIGGER_MODES) {
       const label = document.createElement('label');
       label.className = 'channel-trigger-option';
@@ -134,9 +134,11 @@ class ChannelSettingsDialog {
       this.triggerFieldset.appendChild(label);
       this.triggerOptions.set(mode, { label, input });
     }
+    triggerField.append(this.triggerLabel, this.triggerFieldset);
 
-    const colorField = div('channel-settings-field');
+    const colorField = div('channel-settings-field channel-settings-color-field');
     this.colorLabel = document.createElement('label');
+    this.colorLabel.className = 'channel-settings-copy';
     this.colorLabel.htmlFor = 'channel-settings-color';
     this.colorInput = document.createElement('input');
     this.colorInput.id = 'channel-settings-color';
@@ -144,7 +146,7 @@ class ChannelSettingsDialog {
     this.colorInput.type = 'color';
     colorField.append(this.colorLabel, this.colorInput);
 
-    fields.append(nameField, this.triggerFieldset, colorField);
+    fields.append(nameField, triggerField, colorField);
 
     const footer = div('channel-settings-actions');
     this.cancelButton = button('', 'channel-settings-cancel');
@@ -194,10 +196,9 @@ class ChannelSettingsDialog {
 
   private renderStrings(channel: number): void {
     this.title.textContent = t('channels.settings', { index: channel });
-    this.description.textContent = t('channels.dialogDescription');
     this.nameLabel.textContent = t('channels.name');
     this.colorLabel.textContent = t('channels.color');
-    this.triggerLegend.textContent = t('channels.triggerMode');
+    this.triggerLabel.textContent = t('channels.triggerMode');
     this.cancelButton.textContent = t('channels.cancel');
     this.saveButton.textContent = t('toolbar.save');
     for (const [mode, option] of this.triggerOptions) {

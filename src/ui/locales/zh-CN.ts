@@ -78,7 +78,6 @@ export const zhCN: Messages = {
 
   // -------------------------------------------------------- channel list
   'channels.settings': 'D{index} 设置',
-  'channels.dialogDescription': '编辑通道设置。',
   'channels.name': '通道名称',
   'channels.color': '通道颜色',
   'channels.triggerMode': '触发模式',

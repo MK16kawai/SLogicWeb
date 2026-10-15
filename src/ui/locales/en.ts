@@ -84,7 +84,6 @@ export const en = {
 
   // -------------------------------------------------------- channel list
   'channels.settings': 'D{index} settings',
-  'channels.dialogDescription': 'Edit channel settings.',
   'channels.name': 'Channel name',
   'channels.color': 'Channel color',
   'channels.triggerMode': 'Trigger mode',

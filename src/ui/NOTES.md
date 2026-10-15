@@ -741,3 +741,25 @@ not a hardware capture lifecycle.
 Node checks passed with 13/13 channel-layout results, 13/13 theme results (including the
 exact 17-channel UI/renderer default-color cycle), 27/27 i18n results with the color
 label in the translated-probe set, and `tsc --noEmit`.
+
+## 17. Key/value channel settings fields
+
+**Prediction, recorded before the KV browser checks.** Giving the name and trigger rows
+a 104 CSS px label column and a flexible control column should put labels on the left and
+controls on the right without a breakpoint. The trigger choices may wrap inside their own
+column on narrow screens. Color must remain a vertical field and the final configuration
+item, while the existing modal draft, focus and Save behavior stays unchanged.
+
+**Implementation, before measurement.** The name and trigger fields now share the
+`channel-settings-kv` grid. A visible external span labels the native trigger field set
+through `aria-labelledby`, avoiding field set/legend grid layout while retaining its
+group semantics and single running/stopping disabled flag. The header has only its
+required visible title: the description element, ARIA relationship, dead CSS and four
+`channels.dialogDescription` catalog entries are removed. Color retains its native input
+and vertical field class in this pair. No trigger mapping, channel color, App state or
+row-pitch code changed.
+
+**Validation pending.** Exact node guards and desktop/narrow Chrome geometry must prove
+the two KV rows, the stacked last color field, complete description removal and no
+horizontal overflow. Name edits and every existing Save/Cancel/Escape/backdrop path must
+remain green.

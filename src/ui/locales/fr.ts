@@ -80,7 +80,6 @@ export const fr: Messages = {
 
   // -------------------------------------------------------- channel list
   'channels.settings': 'Paramètres de D{index}',
-  'channels.dialogDescription': 'Modifier les paramètres du canal.',
   'channels.name': 'Nom du canal',
   'channels.color': 'Couleur du canal',
   'channels.triggerMode': 'Mode de trigger',
