@@ -620,3 +620,35 @@ moderate gain; **C** (per-row islands with real gaps across label and plot) - th
 only render-layer option (per-row rounded cards in the shader), highest risk;
 **D** (separate rounded frames for labels and plot with a gutter) - loosens the
 strip/trace adjacency the label column exists for.
+
+## 14. Adaptive channel pitch with a readable minimum
+
+**Prediction, recorded before the layout measurements.** The current card geometry needs
+46 CSS px of pitch: 6 px of cell insets, 2 px of card border, 4 px of body padding, an
+18 px head, a 2 px gap and the reserved 14 px decoder strip. A [CHOSEN] 48 px minimum
+should therefore keep both the head and the reserved strip inside the card with 2 px of
+slack. The existing auto-fit rule and 72 px maximum stay in place. At 32 channels the
+minimum-sized stack should be 1,536 px plus annotation lanes, so a short viewport must
+scroll instead of compressing the cards. The browser check must also prove that the
+label cells and waveform rows still share the same pitch after a resize.
+
+**Result: HELD.** [MEASURED] in headless Chrome through the normal capture-loading path.
+At 1000x500 with 32 channels, every label cell and channel row was 48 px, the stack was
+1,536 px split across two 768 px canvases, and the scroll area was 1,566 px tall for a
+429 px viewport (the sticky axis accounts for the 30 px difference). Every card kept its
+head and reserved decoder strip inside its body; no horizontal overflow or uncaught page
+error appeared. Resizing to 1280x1000 retained that geometry and overflow. With eight enabled
+channels the same browser then grew the rows to the unchanged 72 px maximum (576 px
+stack, no overflow); shrinking to 1000x500 recomputed a 49 px pitch and a 392 px stack,
+again without overflow. Overlay canvases matched the plot height in every pass.
+
+The sizing arithmetic now lives in the pure UI-owned `computeChannelRowHeight` rather
+than a second test-only row model. Nine exact node checks cover fit, integer flooring,
+both clamps, annotation lanes, the 1,536 px 32-channel fit boundary and App's delegation
+to that policy. The theme suite adds the exact 48 px card-minimum guard; mutating its
+bundled input back to 26 px makes that check fail, so the guard has a working control.
+
+**Not measured in this pass.** The browser capture had no decoder attached, so annotation
+lane arithmetic is covered by the exact node checks and the pre-existing lane model, not
+by a new 32-channel decoded browser scene. Arbitrary numbers of decoder chips still use
+the existing one-line reservation and can clip as documented in section 13.
