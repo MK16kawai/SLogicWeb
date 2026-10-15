@@ -7,6 +7,7 @@
 
 import { App } from './app.js';
 import { initLocale } from './i18n.js';
+import { initTheme } from './theme.js';
 // Side effect: hands `workerTransport` the browser's USB worker constructor. Imported
 // here, not from `device/index.ts`, so the device layer stays bundlable without Vite.
 import '../device/usbWorkerSpawn.js';
@@ -16,12 +17,15 @@ declare global {
 }
 
 /**
- * Boot. The persisted locale's catalog is preloaded before App is constructed, so
- * the first render pass already paints in the stored language. Deliberately an
- * async IIFE rather than top-level await: Vite's default build target rejects TLA.
+ * Boot. The persisted theme is applied first and synchronously (index.html's inline
+ * head script already did it before first paint; this re-establishes the module state).
+ * Then the persisted locale's catalog is preloaded before App is constructed, so the
+ * first render pass already paints in the stored language. Deliberately an async IIFE
+ * rather than top-level await: Vite's default build target rejects TLA.
  */
 async function boot(): Promise<void> {
   try {
+    initTheme();
     await initLocale();
     window.logicweb = new App();
   } catch (e) {

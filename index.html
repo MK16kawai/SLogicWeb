@@ -12,6 +12,23 @@
     404s. Vite rewrites this href with the build's base, so it follows the subdirectory.
   -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!--
+    Pre-paint theme restore: applies the persisted theme before the stylesheet loads,
+    so a dark session never flashes the default chrome first. Source of truth is
+    src/ui/theme.ts (THEME_STORAGE_KEY, THEMES) - the theme self-test
+    (src/ui/tools/theme-selftest.ts) pins this literal so the two cannot drift.
+    Anything but the exact id 'dark' (absent, garbage, or a throwing storage) means
+    the default theme, exactly like pickTheme(). A bare inline script on purpose:
+    vite.config.ts's inlineEntryForFileOpen only rewrites module scripts and the
+    stylesheet link, so this passes the portable single-file build untouched.
+  -->
+  <script>
+    try {
+      if (localStorage.getItem('logicweb.theme') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch { /* storage unavailable (privacy mode): stay on the default theme */ }
+  </script>
   <link rel="stylesheet" href="/src/ui/style.css" />
 </head>
 <body>

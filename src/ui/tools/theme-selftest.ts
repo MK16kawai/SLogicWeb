@@ -19,10 +19,16 @@
  *   - setTheme persists the pick, applies the <html> attribute, and notifies exactly
  *     once per real change; a same-id pick is a silent no-op (no write, no notify);
  *   - the returned unsubscribe stops further notifications;
- *   - a storage whose getItem/setItem throw does not break boot or the switch.
+ *   - a storage whose getItem/setItem throw does not break boot or the switch;
+ *   - index.html restores the persisted theme BEFORE the stylesheet link, keyed by
+ *     THEME_STORAGE_KEY's actual value (renaming the key on either side turns this red);
+ *   - style.css keeps every dark rule scoped to [data-theme="dark"] and never
+ *     redefines the chrome metric variables inside a dark block (vacuous until the
+ *     token layer lands, load-bearing from then on).
  *
- * The checks are ordered fresh-state first, mutation last: checks 5-8 inject fake
- * localStorage/document globals, so an earlier check must not observe them.
+ * The checks are ordered fresh-state first, mutation next: checks 5-8 inject fake
+ * localStorage/document globals, so an earlier check must not observe them. Checks
+ * 9-10 are read-only file scans and are unaffected by those stubs.
  */
 
 import { en } from '../locales/en.js';
@@ -34,11 +40,16 @@ import {
 /** Same structural-typing trick as i18n-selftest.ts: node access without @types/node. */
 const nodeProcess = (() => {
   const p = (globalThis as {
-    process?: { exit(code: number): never };
+    process?: { exit(code: number): never; getBuiltinModule?(name: string): unknown };
   }).process;
   if (!p || typeof p.exit !== 'function') throw new Error('this entry point only runs under node');
   return p;
 })();
+
+/** The fs subset the file-scan checks need, via getBuiltinModule (see i18n-selftest). */
+interface FsLike {
+  readFileSync(p: string, enc: 'utf8'): string;
+}
 
 interface TestResult {
   name: string;
@@ -182,6 +193,64 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
     !bootThrew && booted === 'default' && afterBoot === 'default' && !switchThrew &&
     getTheme() === 'dark',
     `boot=${booted}, bootThrew=${bootThrew}, switchThrew=${switchThrew}, theme=${getTheme()}`);
+}
+
+// ------------------------------------------- index.html pre-paint script (check 9)
+
+{
+  const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+  if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
+  // Read from the CWD, same convention as i18n-selftest's index.html check.
+  const html = fs.readFileSync('index.html', 'utf8');
+  // The needle is built from the constant's VALUE as the exact quoted storage read:
+  // renaming THEME_STORAGE_KEY without touching the inline script (or vice versa)
+  // fails here. A quoted-literal match, not a substring - 'logicweb.themex' still
+  // contains 'logicweb.theme', so a looser match would not catch that drift.
+  const needle = `getItem('${THEME_STORAGE_KEY}')`;
+  const keyIdx = html.indexOf(needle);
+  const cssIdx = html.indexOf('<link rel="stylesheet"');
+  check('index.html restores the persisted theme before the stylesheet link',
+    keyIdx !== -1 && cssIdx !== -1 && keyIdx < cssIdx &&
+    html.includes('data-theme') && html.includes("'dark'"),
+    `storageKey@${keyIdx}, stylesheet@${cssIdx}, data-theme=${html.includes('data-theme')}`);
+}
+// (no assert against a second hardcoded 'logicweb.theme' literal: THEME_STORAGE_KEY IS the needle)
+
+// ------------------------------------------- style.css dark-scope guards (check 10)
+
+{
+  const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+  if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
+  const css = fs.readFileSync('src/ui/style.css', 'utf8');
+
+  // (a) Dark-only scoping: a [data-theme="default"] colour rule would double-source the
+  // default palette and break the pixel-identity-by-construction argument.
+  const defaultScopes = css.match(/\[data-theme="default"\]/g) ?? [];
+
+  // (b) The chrome metric freeze: theme blocks recolour, they never resize. Naive brace
+  // matching is adequate here - this sheet has no CSS nesting, and dark rules are
+  // top-level blocks. Vacuously true until the token layer lands (no dark block yet).
+  const METRIC_VARS = ['--toolbar-h', '--axis-h', '--status-h', '--labels-w', '--rail-w', '--strip-w', '--panel-w'];
+  const offenders: string[] = [];
+  let darkBlocks = 0;
+  let from = 0;
+  for (;;) {
+    const open = css.indexOf('html[data-theme="dark"]', from);
+    if (open === -1) break;
+    const brace = css.indexOf('{', open);
+    const close = brace === -1 ? -1 : css.indexOf('}', brace);
+    if (brace === -1 || close === -1) break;
+    darkBlocks += 1;
+    const body = css.slice(brace + 1, close);
+    for (const v of METRIC_VARS) {
+      if (new RegExp(`${v}\\s*:`).test(body)) offenders.push(v);
+    }
+    from = close + 1;
+  }
+  check('style.css: no default-scope rules and dark blocks never redefine chrome metrics',
+    defaultScopes.length === 0 && offenders.length === 0,
+    `darkBlocks=${darkBlocks}, defaultScopes=${defaultScopes.length}, ` +
+    `metricOffenders=${offenders.join(',') || '(none)'}${darkBlocks === 0 ? ' (vacuous until the token layer lands)' : ''}`);
 }
 
 // ---------------------------------------------------------------------- report
