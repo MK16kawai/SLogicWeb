@@ -655,9 +655,13 @@ html[data-theme="dark"] .panel-sub,
 html[data-theme="dark"] .panel-note { color: var(--muted-foreground); }
 
 /* Dark theme: panel controls take the shadcn control shape - control radius, --input
-   border, ground-level fields on the card. The segmented active state follows the
-   ToggleGroup idiom (a secondary surface) instead of the default's inverted contrast;
-   enabled chips keep their TS-painted channel colours (inline style beats the sheet). */
+   border, ground-level fields on the card. The segmented active state was first styled
+   after the ToggleGroup idiom (a secondary surface), but dark --secondary equals the
+   base .seg surface AND --muted (all oklch(0.269 0 0)), so a tonal shift is provably
+   invisible here; the active segment INVERTS like the default theme's --text80-on-bg00
+   instead, and takes the foreground border to keep its edge crisp against the
+   unselected siblings. Enabled chips keep their TS-painted channel colours (inline
+   style beats the sheet). */
 html[data-theme="dark"] .chip {
   background: var(--background); border-color: var(--input);
   border-radius: calc(var(--radius) - 4px);
@@ -669,7 +673,10 @@ html[data-theme="dark"] .usb-console-command input {
   border-radius: calc(var(--radius) - 4px);
 }
 html[data-theme="dark"] .field label { color: var(--muted-foreground); }
-html[data-theme="dark"] .seg.on { background: var(--secondary); color: var(--secondary-foreground); }
+html[data-theme="dark"] .seg.on {
+  background: var(--foreground); color: var(--background);
+  border-color: var(--foreground);
+}
 html[data-theme="dark"] .usb-console-output { border-color: var(--input); }
 
 /* The plot needs no frame of its own under dark: the canvas paints the measured
