@@ -373,6 +373,42 @@ html[data-theme="dark"] .ch-trigger:hover { border-color: var(--primary); color:
 html[data-theme="dark"] .ch-trigger.active:not(.triggered):not(.not-found) {
   background: var(--primary); border-color: var(--primary); color: var(--primary-foreground);
 }
+
+/* Dark theme: the channel cell renders as one rounded Item-style card (the shadcn
+   Item anatomy: strip = media, tag+name = content, trigger = action). The cell box
+   keeps its measured pitch exactly - label-to-trace alignment is untouched; only
+   the visible card insets inside it. [CHOSEN] insets: 3 px vertical keeps the row
+   rhythm tight; 4/2 px horizontal lifts the card off the column edges. */
+html[data-theme="dark"] .ch-cell {
+  border-bottom: 0;
+  padding: 3px 4px 3px 2px;
+}
+html[data-theme="dark"] .ch-card {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);  /* [SOURCE] shadcn control radius idiom */
+  overflow: hidden;                          /* clips the colour strip to the radius */
+}
+/* Hover brightens the card. Verified by token VALUE (styling rule 10): --card is
+   oklch 0.205 and --muted oklch 0.269 - a real lightness step, not the --secondary
+   no-op trap. */
+html[data-theme="dark"] .ch-cell:hover .ch-card {
+  background: var(--muted);
+  border-color: var(--input);
+}
+/* The drop outline moves from the pitch box (which now has transparent insets) to
+   the visible card. Same --primary ring, right rectangle. */
+html[data-theme="dark"] .ch-cell.drop-target { outline: none; }
+html[data-theme="dark"] .ch-cell.drop-target .ch-card {
+  outline: 1px solid var(--primary);
+  outline-offset: -1px;
+}
+/* The rename field's focus fill reads against the card, not the shell: ground-level
+   input on a card surface, the shadcn field idiom. */
+html[data-theme="dark"] .ch-name:focus { background: var(--background); }
 /* Surface constants shared by the two overlay panels (provenance: the picker's
    [MEASURED] values; one declaration so they cannot drift). */
 .trigger-inline-picker, .settings-menu, .settings-flyout {
