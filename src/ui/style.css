@@ -292,6 +292,12 @@ html[data-theme="dark"] .danger {
 
 .ch-strip { width: var(--strip-w); min-width: var(--strip-w); }
 
+/* The card and chips wrappers are structure only: `display: contents` keeps them
+   layout-invisible here, so this base layer renders byte-identically to before they
+   existed. The dark theme promotes them to real boxes (rounded card, reserved
+   decoder strip) - see the dark channel-row block below. */
+.ch-card, .ch-analyzers { display: contents; }
+
 .ch-body {
   flex: 1;
   min-width: 0;

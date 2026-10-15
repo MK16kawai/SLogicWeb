@@ -64,10 +64,18 @@ export class ChannelList {
       el.dataset['pos'] = String(pos);
       if (!cell.channel.enabled) el.classList.add('disabled');
 
+      /* The card wrapper groups strip+body so a theme can render the cell as one
+         rounded card; the chips container lets a theme reserve the decoder strip.
+         Both are `display: contents` in the sheet's base layer, so until a theme
+         opts in they are layout-invisible and change nothing. */
+      const card = document.createElement('div');
+      card.className = 'ch-card';
+      el.appendChild(card);
+
       const strip = document.createElement('div');
       strip.className = 'ch-strip';
       strip.style.background = channelColor(cell.channel.index);
-      el.appendChild(strip);
+      card.appendChild(strip);
 
       const body = document.createElement('div');
       body.className = 'ch-body';
@@ -139,6 +147,9 @@ export class ChannelList {
       head.appendChild(trigger);
       body.appendChild(head);
 
+      const chips = document.createElement('div');
+      chips.className = 'ch-analyzers';
+
       for (const a of cell.analyzers) {
         const chip = document.createElement('div');
         chip.className = 'ch-analyzer';
@@ -157,10 +168,11 @@ export class ChannelList {
         x.addEventListener('click', () => this.cb.onRemoveAnalyzer(a.id));
         chip.appendChild(x);
         chip.title = formatAnalyzerNote(a.note) || a.label;
-        body.appendChild(chip);
+        chips.appendChild(chip);
       }
+      body.appendChild(chips);
 
-      el.appendChild(body);
+      card.appendChild(body);
 
       el.addEventListener('dragstart', (e) => {
         this.dragFrom = pos;
