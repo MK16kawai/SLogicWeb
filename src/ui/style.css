@@ -105,6 +105,7 @@ html[data-theme="dark"] {
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: var(--primary);
+  --shadow: oklch(0 0 0 / 45%);  /* [CHOSEN] overlay/popover shadow, deeper than default's 40% */
   --radius: 0.625rem;        /* [SOURCE] shadcn default: 10px cards, 6px controls via calc() */
 
   /* Legacy remap: rules not yet migrated to semantic tokens still follow the theme.
@@ -362,6 +363,34 @@ button:disabled { opacity: 0.45; cursor: default; }
 .settings-item:hover, .settings-item.open { background: var(--panel); color: var(--text); }
 .settings-check { width: 14px; flex: none; color: var(--accent); }
 .settings-hint { margin-left: auto; padding-left: 12px; color: var(--text50); }
+
+/* Dark theme: the transient overlays read as shadcn popovers - popover surface, subtle
+   border, the theme radius, a deeper shadow. One override covers the menu, its flyout
+   and the trigger picker because the default sheet already shares their surface rule.
+   Higher-specificity selectors (html[data-theme]) win over the shared rule regardless
+   of source order. */
+html[data-theme="dark"] .trigger-inline-picker,
+html[data-theme="dark"] .settings-menu,
+html[data-theme="dark"] .settings-flyout {
+  background: var(--popover); color: var(--popover-foreground);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+html[data-theme="dark"] .settings-item {
+  border-radius: calc(var(--radius) - 4px); color: var(--popover-foreground);
+}
+html[data-theme="dark"] .settings-item:hover,
+html[data-theme="dark"] .settings-item.open { background: var(--muted); color: var(--foreground); }
+html[data-theme="dark"] .settings-check { color: var(--primary); }
+html[data-theme="dark"] .settings-hint { color: var(--muted-foreground); }
+html[data-theme="dark"] .trigger-inline-option {
+  background: var(--background); border-color: var(--input);
+  color: var(--muted-foreground); border-radius: calc(var(--radius) - 4px);
+}
+html[data-theme="dark"] .trigger-inline-option:hover,
+html[data-theme="dark"] .trigger-inline-option.selected {
+  background: var(--primary); border-color: var(--primary); color: var(--primary-foreground);
+}
 
 .ch-analyzer {
   display: flex;
