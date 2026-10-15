@@ -44,7 +44,8 @@ import { COLORS, MEASURE_COLORS, ROWS } from './metrics.js';
 import { Overlay, type HoverMeasurement } from './overlay.js';
 import { StoreRef } from './storeRef.js';
 import {
-  analyzerColor, defaultChannels, channelColor,
+  analyzerColor, defaultChannels, channelColor, DEFAULT_TRIGGER_MODE,
+  modesToConditions, triggerModeFromCondition,
   type AnalyzerState, type CaptureSettings, type ChannelState, type TriggerMode,
   type CaptureLabel, type StatusError,
 } from './state.js';
@@ -299,7 +300,7 @@ export class App {
         laneCss: mine.length * ROWS.laneHeight,
         analyzers: this.analyzers.filter((a) => this.chipChannels(a).includes(c.index)),
         trigger: {
-          mode: this.settings.triggerModes[c.index] ?? 'dont-care',
+          mode: this.settings.triggerModes[c.index] ?? DEFAULT_TRIGGER_MODE,
           disabled: this.running || this.stopping,
         },
       });
@@ -1448,7 +1449,7 @@ export class App {
       const current = this.channels[i];
       if (current) {
         this.configureChannel(i, {
-          name, mode: this.settings.triggerModes[i] ?? 'dont-care', color: current.color,
+          name, mode: this.settings.triggerModes[i] ?? DEFAULT_TRIGGER_MODE, color: current.color,
         });
       }
     },
@@ -1563,12 +1564,7 @@ function clampSettings(
     .map((c) => ({ ...c }));
   const triggerModes: Record<number, TriggerMode> = { ...savedModes };
   for (const c of triggerConditions) {
-    // 'edge' (either direction) is engine-supported but has no glyph in the inline
-    // five-state picker, so a saved/debug condition using it maps to X here and the
-    // condition is dropped on the next settings edit. Unsupported in this UI on
-    // purpose; pick rising or falling instead.
-    triggerModes[c.channel] = c.kind === 'level' ? (c.level ? 'high' : 'low')
-      : c.kind === 'rising' ? 'rising' : c.kind === 'falling' ? 'falling' : 'dont-care';
+    triggerModes[c.channel] = triggerModeFromCondition(c);
   }
   return {
     ...s, samplerate, seconds: Math.max(0.001, Math.min(s.seconds, max)),
@@ -1581,15 +1577,6 @@ function clampSettings(
     triggerConditions,
     preTriggerPercent: Math.max(0, Math.min(75, s.preTriggerPercent)),
   };
-}
-
-function modesToConditions(modes: Record<number, TriggerMode>): CaptureSettings['triggerConditions'] {
-  return Object.keys(modes).map(Number).sort((a, b) => a - b).flatMap((channel): CaptureSettings['triggerConditions'] => {
-    const mode = modes[channel];
-    if (!mode || mode === 'dont-care') return [];
-    if (mode === 'low' || mode === 'high') return [{ channel, kind: 'level' as const, level: mode === 'high' ? 1 as const : 0 as const }];
-    return [{ channel, kind: mode, level: 1 as const }];
-  });
 }
 
 /** Configuration edits describe a future capture; they must not leave the previous

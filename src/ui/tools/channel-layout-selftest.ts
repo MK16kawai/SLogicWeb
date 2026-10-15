@@ -108,14 +108,14 @@ expectHeight('annotation lanes cannot push a channel below the minimum', 200, 32
     rowStart >= 0 && rowSimplified && readOnlyEntry,
     `rowStart=${rowStart}, simplified=${rowSimplified}, readOnlyEntry=${readOnlyEntry}`);
 
-  const exactModes = "const TRIGGER_MODES: readonly TriggerMode[] = ['falling', 'rising', 'high', 'low', 'dont-care'];";
+  const exactModes = "const TRIGGER_MODES: readonly TriggerMode[] = ['falling', 'rising', 'edge', 'high', 'low', 'dont-care'];";
   const nativeModal = dialogSource.includes("document.createElement('dialog')") &&
     dialogSource.includes('this.dialog.showModal();') &&
     dialogSource.includes("this.dialog.setAttribute('aria-labelledby', 'channel-settings-title')");
   const oneSavePath = dialogSource.includes("form.addEventListener('submit', this.onSubmit)") &&
     dialogSource.includes('this.onConfigure(channel, config);') &&
     dialogSource.includes('this.onSaved(channel);');
-  check('channel dialog uses one native-modal save path with all five modes',
+  check('channel dialog uses one native-modal save path with all six modes',
     dialogSource.includes(exactModes) && nativeModal && oneSavePath,
     `modes=${dialogSource.includes(exactModes)}, native=${nativeModal}, save=${oneSavePath}`);
 

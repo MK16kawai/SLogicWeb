@@ -26,7 +26,8 @@ import { button, div } from './capturePanel.js';
 import { formatAnalyzerNote } from './format.js';
 import { t } from './i18n.js';
 import { COLORS } from './metrics.js';
-import type { AnalyzerState, ChannelState, TriggerMode } from './state.js';
+import { DEFAULT_TRIGGER_MODE,
+  type AnalyzerState, type ChannelState, type TriggerMode } from './state.js';
 
 export interface ChannelConfiguration {
   name: string;
@@ -60,7 +61,7 @@ export interface ChannelListCallbacks {
   onRemoveAnalyzer(id: string): void;
 }
 
-const TRIGGER_MODES: readonly TriggerMode[] = ['falling', 'rising', 'high', 'low', 'dont-care'];
+const TRIGGER_MODES: readonly TriggerMode[] = ['falling', 'rising', 'edge', 'high', 'low', 'dont-care'];
 
 interface TriggerOption {
   label: HTMLLabelElement;
@@ -218,7 +219,7 @@ class ChannelSettingsDialog {
     if (this.channel < 0) return;
     const channel = this.channel;
     const mode = TRIGGER_MODES.find((candidate) =>
-      this.triggerOptions.get(candidate)?.input.checked) ?? 'dont-care';
+      this.triggerOptions.get(candidate)?.input.checked) ?? DEFAULT_TRIGGER_MODE;
     const config: ChannelConfiguration = {
       name: this.nameInput.value.trim(), mode, color: this.colorInput.value,
     };
@@ -374,8 +375,9 @@ export class ChannelList {
 function triggerModeName(mode: TriggerMode): string {
   return mode === 'falling' ? t('trigger.falling')
     : mode === 'rising' ? t('trigger.rising')
-      : mode === 'high' ? t('channels.triggerHigh')
-        : mode === 'low' ? t('channels.triggerLow') : t('channels.triggerAny');
+      : mode === 'edge' ? t('trigger.anyEdge')
+        : mode === 'high' ? t('channels.triggerHigh')
+          : mode === 'low' ? t('channels.triggerLow') : t('channels.triggerAny');
 }
 
 function triggerIcon(mode: TriggerMode): SVGSVGElement {
@@ -383,13 +385,17 @@ function triggerIcon(mode: TriggerMode): SVGSVGElement {
   svg.setAttribute('viewBox', '0 0 24 16');
   svg.setAttribute('aria-hidden', 'true');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  const d = mode === 'falling' ? 'M1 3H9L15 13H23' : mode === 'rising' ? 'M1 13H9L15 3H23'
-    : mode === 'high' ? 'M1 3H23' : mode === 'low' ? 'M1 13H23' : 'M5 3L19 13M19 3L5 13';
+  const d = mode === 'falling' ? 'M1 4H8V12H23'
+    : mode === 'rising' ? 'M1 12H8V4H23'
+      : mode === 'edge' ? 'M1 12H5V4H10M14 4H19V12H23'
+        : mode === 'high' ? 'M1 4H23'
+          : mode === 'low' ? 'M1 12H23' : 'M6 4L18 12M18 4L6 12';
   path.setAttribute('d', d);
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke', 'currentColor');
   path.setAttribute('stroke-width', '2');
-  path.setAttribute('stroke-linecap', 'square');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
   svg.appendChild(path);
   return svg;
 }

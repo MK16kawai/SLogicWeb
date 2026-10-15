@@ -443,12 +443,14 @@ html[data-theme="dark"] .ch-cell.drop-target .ch-card {
   width: 100%;
   gap: 6px;
 }
+/* [CHOSEN] Six 36px choices fit the desktop KV control column and wrap three-per-row
+   at the measured 320px viewport without changing the dialog width. */
 .channel-trigger-option {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
+  width: 36px;
   height: 30px;
   background: var(--background);
   color: var(--muted-foreground);

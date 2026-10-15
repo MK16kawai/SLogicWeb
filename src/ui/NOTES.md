@@ -783,3 +783,26 @@ failures.
 Node checks passed with 16/16 channel-layout results, including exact KV/color-order,
 description and backdrop-focus guards; 28/28 i18n results, including description-key
 absence in all four catalogs; and `tsc --noEmit`.
+
+## 18. Six trigger modes with an explicit any-value default
+
+**Prediction, recorded before the trigger browser checks.** The software trigger already
+matches `edge`, so adding it to the UI-owned mode union and moving the pure mode/condition
+transforms beside the state types should expose dual-edge without touching capture code.
+A shared `DEFAULT_TRIGGER_MODE = 'dont-care'` should preserve the existing unconfigured
+X behavior, while `triggerModeFromCondition` should stop legacy/debug edge conditions
+from degrading to X. Six 36 px choices should fit the desktop KV control column and wrap
+without changing the measured dialog widths.
+
+**Implementation, before measurement.** `state.ts` now owns the six-mode union, default,
+and both pure transforms; App imports them and retains all clamping, origin reset and
+redraw ownership. The radio order is falling, rising, dual-edge, high, low and any-value,
+with the existing `trigger.anyEdge` translation reused. Every glyph was redrawn as a
+coherent stepped-edge, level or X family with rounded stroke joins. The dual-edge glyph
+shows rising and falling steps side by side. All trigger colors, channel colors, global
+mask and pre-trigger logic are unchanged.
+
+**Validation pending.** Exact node tables must cover every mode and condition round trip.
+Chrome must prove six distinct accessible choices, X by default, every Save mapping,
+non-destructive reopen and running/stopping locks. Desktop and narrow geometry must keep
+the Pair-1 KV rows and no-overflow contract.

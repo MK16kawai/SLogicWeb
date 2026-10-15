@@ -66,7 +66,7 @@ export interface CaptureSettings {
   /** Global trigger enable mask. Per-channel modes remain stored when this is false. */
   triggerEnableMask: boolean;
   softwareTrigger: boolean;
-  /** One of the five PulseView-style per-channel trigger glyphs. Missing means X. */
+  /** One of the six per-channel trigger glyphs. Missing means X / any value. */
   triggerModes: Record<number, TriggerMode>;
   /** Confirmed per-channel conditions. They are combined with logical AND. */
   triggerConditions: TriggerCondition[];
@@ -83,7 +83,27 @@ export interface TriggerCondition {
   level: 0 | 1;
 }
 
-export type TriggerMode = 'low' | 'high' | 'rising' | 'falling' | 'dont-care';
+export type TriggerMode = 'low' | 'high' | 'rising' | 'falling' | 'edge' | 'dont-care';
+
+/** [CHOSEN] An unconfigured channel imposes no condition and displays X / any value. */
+export const DEFAULT_TRIGGER_MODE: TriggerMode = 'dont-care';
+
+/** Preserve every engine-supported condition when normalizing it back to a dialog mode. */
+export function triggerModeFromCondition(condition: TriggerCondition): TriggerMode {
+  return condition.kind === 'level' ? (condition.level ? 'high' : 'low') : condition.kind;
+}
+
+/** Convert the dialog's per-channel modes to the sorted AND-condition list App clamps. */
+export function modesToConditions(modes: Record<number, TriggerMode>): TriggerCondition[] {
+  return Object.keys(modes).map(Number).sort((a, b) => a - b).flatMap((channel): TriggerCondition[] => {
+    const mode = modes[channel];
+    if (!mode || mode === 'dont-care') return [];
+    if (mode === 'low' || mode === 'high') {
+      return [{ channel, kind: 'level', level: mode === 'high' ? 1 : 0 }];
+    }
+    return [{ channel, kind: mode, level: 1 }];
+  });
+}
 
 export type Source = 'none' | 'file' | 'device';
 
