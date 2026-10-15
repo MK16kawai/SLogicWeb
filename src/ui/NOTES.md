@@ -466,28 +466,38 @@ for i18next in a tree whose only runtime dependency is pyodide.
   would make saved files locale-dependent), canvas glyphs and the A/B/|B-A| status
   symbols, and the boot-failure message in main.ts.
 
-## 12. Themes: the token layer, the dark theme, and the pre-paint restore
+## 12. Themes: the token layer, the dark theme, and the pre-paint apply
 
-The settings menu grew a second sub-option: Theme (`default` | `dark`), next to
-Language. `default` is the measured Logic2-style palette this app shipped with;
-`dark` is a shadcn-style dark theme. The theme is chrome-only CSS - canvases, capture
-state and layout metrics never move.
+The settings menu is Language-only again: the Theme sub-option (`default` | `dark`)
+was retired once `dark` became the default theme for every visitor - keeping a hidden
+picker reachable would have been pointless, and keeping a stored light pick honored
+would have stranded those users on a theme they can no longer change. `default` is
+the measured Logic2-style palette this app shipped with; `dark` is a shadcn-style
+dark theme. The theme is chrome-only CSS - canvases, capture state and layout metrics
+never move. The machinery is deliberately NOT torn out: `theme.ts`, the label keys,
+the catalog entries and `debug.setTheme` all stay live, so re-showing the row is a
+one-item revert in `settingsItems()`.
 
 - **`src/ui/theme.ts` is `i18n.ts` shrunk to fit a synchronous problem.** Same module
   shape (module state, guarded `localStorage['logicweb.theme']`, subscribers, node-safe
-  top level, `pickTheme` fallback for absent/garbage values), but `setTheme` is sync:
-  there is no catalog to fetch, so no Promise, no request race, no 'superseded'. The
-  module owns the DOM side effect (`document.documentElement.dataset.theme`), the same
-  ownership split as `setLocale` owning `<html lang>`. Scriptable through
+  top level), but `setTheme` is sync: there is no catalog to fetch, so no Promise, no
+  request race, no 'superseded'. `pickTheme` resolves absent or garbage storage - AND
+  a stored legacy `default` pick - to the dark fallback (`DEFAULT_THEME`): the old
+  light pick predates dark-by-default and the retired picker, so it migrates instead
+  of stranding its owner. Only `dark` is a live stored id today. The module owns the
+  DOM side effect (`document.documentElement.dataset.theme`), the same ownership
+  split as `setLocale` owning `<html lang>`. Scriptable through
   `App.debug.setTheme/getTheme`; `snapshot().theme` carries it.
-- **Pre-paint restore is a two-line inline script in `index.html`** (module scripts are
-  deferred, so waiting for `boot()` would flash the default chrome). It only recognizes
-  the exact id `dark`; everything else falls through to the default. The duplication of
-  the storage key is drift-proof: `theme-selftest.ts` builds its needle from
-  `THEME_STORAGE_KEY` as the exact quoted `getItem('<key>')` literal - a substring match
-  would not catch a drift to a longer key, which is why the needle is quoted. The
-  portable build's `inlineEntryForFileOpen` only rewrites module scripts and stylesheet
-  links, so the bare inline script passes through untouched (verified in dist).
+- **Pre-paint apply is a small inline script in `index.html`** (module scripts are
+  deferred, so waiting for `boot()` would flash the light chrome). It mirrors
+  `pickTheme()`: a stored live id wins; absent, garbage, migrated-`default`, and
+  throwing-storage paths all set `data-theme="dark"` before the stylesheet loads.
+  The duplication of the storage key is drift-proof: `theme-selftest.ts` builds its
+  needle from `THEME_STORAGE_KEY` as the exact quoted `getItem('<key>')` literal - a
+  substring match would not catch a drift to a longer key, which is why the needle is
+  quoted. The portable build's `inlineEntryForFileOpen` only rewrites module scripts
+  and stylesheet links, so the bare inline script passes through untouched (verified
+  in dist).
 - **Three CSS layers, one stylesheet.** Layer A is the legacy `:root`, untouched, so
   `default` is pixel-identical by construction (gated on a 0-byte-diff headless-Chrome
   screenshot against the pre-theme baseline, not on hope). Layer B is a shadcn semantic
