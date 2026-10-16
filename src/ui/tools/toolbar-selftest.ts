@@ -184,7 +184,7 @@ check(
 );
 
 const intrinsicDesktop = css.includes('#toolbar button.toolbar-item {\n  flex: 0 0 auto;\n  width: fit-content;');
-const intrinsicMobile = css.includes('#toolbar button.toolbar-item { min-height: 38px; max-width: 100%; padding: 4px 8px; }');
+const intrinsicMobile = css.includes('#toolbar button.toolbar-item { min-height: 38px; max-width: min(240px, 100%); padding: 4px 8px; }');
 const fixedSizingNeedles = [
   'flex: 0 1 240px',
   'min-width: 180px',
