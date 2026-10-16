@@ -51,16 +51,19 @@ const controlsMatch = html.match(/<section\b[^>]*id="uictrl-controls"[^>]*>([\s\
 const controlsEmpty = controlsMatch !== null && (controlsMatch[1] ?? '').trim() === '';
 const interactiveElements = html.match(/<(button|input|select|textarea|form)\b/gi) ?? [];
 check(
-  'controls region is empty and the document has no interactive controls',
-  controlsEmpty && interactiveElements.length === 0,
+  'controls region hosts the interactive tuning controls',
+  controlsMatch !== null && !controlsEmpty && interactiveElements.length > 0,
   `empty=${controlsEmpty}, interactive=${JSON.stringify(interactiveElements)}`,
 );
 
-const runtimeNeedles = ['<script', '/src/ui/main.ts', 'new App'];
+const moduleScripts = html.match(/<script\b[^>]*type="module"[^>]*>/gi) ?? [];
+const controllerScripts = moduleScripts.filter((tag) => tag.includes('src="./main.ts"'));
+const runtimeNeedles = ['/src/ui/main.ts', 'new App'];
 const presentRuntimeNeedles = runtimeNeedles.filter((needle) => html.includes(needle));
 check(
-  'console document does not load a runtime script or the primary App bootstrap',
-  presentRuntimeNeedles.length === 0,
+  'console document loads exactly one module script: the console controller',
+  moduleScripts.length === 1 && controllerScripts.length === 1 && presentRuntimeNeedles.length === 0,
+  `moduleScripts=${JSON.stringify(moduleScripts)}, controller=${controllerScripts.length}, ` +
   `present=${JSON.stringify(presentRuntimeNeedles)}`,
 );
 

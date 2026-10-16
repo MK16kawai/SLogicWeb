@@ -925,3 +925,36 @@ html[data-theme="dark"] :is(button, select, input, summary):focus-visible {
   gap: 12px;
   padding: 16px 0;
 }
+
+.uictrl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.uictrl-card-head { display: flex; flex-direction: column; gap: 4px; }
+.uictrl-card-title { margin: 0; font-size: 13px; font-weight: 600; color: var(--foreground); }
+.uictrl-card-note { margin: 0; font-size: 11px; line-height: 1.4; color: var(--muted-foreground); }
+.uictrl-field { display: flex; align-items: center; gap: 8px; }
+.uictrl-field-label { flex: 1 1 auto; min-width: 0; color: var(--foreground); }
+.uictrl-field-input {
+  flex: none;
+  width: 72px;
+  padding: 4px 18px 4px 6px;
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  font: inherit;
+  text-align: right;
+}
+.uictrl-field-unit { flex: none; width: 24px; font-size: 11px; text-align: right; color: var(--muted-foreground); }
+.uictrl-card-actions { display: flex; justify-content: flex-end; }
+.uictrl-card-actions .mini { padding: 3px 10px; }
+html[data-theme="dark"] .uictrl-field-input { border-radius: calc(var(--radius) - 4px); }
+html[data-theme="dark"] .uictrl-card-actions .mini { background: transparent; }
+html[data-theme="dark"] .uictrl-card-actions .mini:hover { background: var(--secondary); }
