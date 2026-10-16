@@ -31,7 +31,7 @@
    * i.e. 30 + 1 = 31 CSS px total - writing 30 here made every band one CSS px short,
    * which is exactly what the first measurement of our own screenshot caught.
    */
-  --toolbar-h: 31px;   /* content device y 66..125, border 126..127 */
+  --toolbar-h: 57px;   /* content device y 66..125, border 126..127 */
   --axis-h: 30px;      /* content device y 128..185, border 186..187 */
   --status-h: 40px;    /* border device y 1920..1921, content 1922..1999 */
   /* [CHOICE] the D-tag, the (optional) read-only name and the settings button; default
@@ -155,19 +155,21 @@ html, body {
 /* ---------------------------------------------------------------- toolbar */
 
 #toolbar {
+  min-width: 0;
   min-height: var(--toolbar-h);
-  background: var(--bg10);
-  border-bottom: 1px solid var(--border-high);
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
   display: flex;
   align-items: center;
-  flex-wrap: wrap;       /* phones: the title drops to a second line, buttons stay */
-  gap: 2px 6px;
-  padding: 2px 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
 }
 
-#toolbar .spacer { flex: 1; }
+#toolbar .spacer { flex: 1 1 12px; min-width: 0; }
 
-#toolbar button, .pill, .mini, .primary, .danger, .seg {
+.pill, .mini, .primary, .danger, .seg {
   background: var(--bg20);
   color: var(--text80);
   border: 1px solid var(--border-low);
@@ -176,7 +178,7 @@ html, body {
   font: inherit;
   cursor: pointer;
 }
-#toolbar button:hover, .pill:hover, .mini:hover { background: var(--panel); }
+.pill:hover, .mini:hover { background: var(--panel); }
 button:disabled { opacity: 0.45; cursor: default; }
 /* Pressed feedback for every button, momentary or toggle: an inset black veil darkens
    WHATEVER background is currently showing - base, hover, .on/.active, .primary,
@@ -193,47 +195,83 @@ button:active { box-shadow: inset 0 0 0 999px rgb(0 0 0 / 25%); }
 .danger { background: var(--stop); border-color: var(--stop); color: #fff; }
 .mini { padding: 1px 6px; font-size: 11px; }
 
-#transport {
-  font-size: 13px;
-  min-width: 74px;
-}
-#capture-title {
-  color: var(--text50);
+#toolbar .toolbar-item { display: flex; align-items: center; gap: 8px; min-width: 0; text-align: left; }
+#toolbar button.toolbar-item {
+  flex: 0 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 240px;
+  min-height: 44px;
+  padding: 5px 10px;
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
 }
-
-#toolbar .toolbar-item { display: flex; align-items: center; gap: 8px; text-align: left; }
-#toolbar .toolbar-item-media { display: flex; align-items: center; justify-content: center; flex: none; }
+#toolbar button.toolbar-item.primary {
+  background: var(--primary); border-color: var(--primary); color: var(--primary-foreground);
+}
+#toolbar button.toolbar-item.danger {
+  background: var(--destructive); border-color: var(--destructive); color: var(--destructive-foreground);
+}
+#toolbar button.toolbar-item:not(.primary):not(.danger):not(:disabled):hover {
+  background: var(--muted); border-color: var(--border);
+}
+#toolbar button.toolbar-item.primary:not(:disabled):hover,
+#toolbar button.toolbar-item.danger:not(:disabled):hover { opacity: 0.9; }
+#toolbar button.toolbar-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+#toolbar button.toolbar-device { flex: 0 1 240px; min-width: 180px; }
+#toolbar .toolbar-item-media {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 28px; height: 28px; border-radius: var(--radius);
+  background: var(--secondary); color: var(--muted-foreground);
+}
 #toolbar .toolbar-item-icon { display: block; width: 18px; height: 18px; }
-#toolbar .toolbar-item-content { display: flex; flex-direction: column; min-width: 0; }
-#toolbar .toolbar-item-title { font-weight: 600; }
-#toolbar .toolbar-item-description { color: var(--text50); font-size: 10px; white-space: nowrap; }
+#toolbar .toolbar-item-content { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
+#toolbar .toolbar-item-title,
+#toolbar .toolbar-item-description {
+  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#toolbar .toolbar-item-title { color: inherit; font-size: 12px; font-weight: 600; line-height: 1.25; }
+#toolbar .toolbar-item-description { color: var(--muted-foreground); font-size: 10px; line-height: 1.2; }
+#toolbar .primary .toolbar-item-media,
+#toolbar .danger .toolbar-item-media { background: transparent; color: inherit; }
 #toolbar .primary .toolbar-item-description,
-#toolbar .danger .toolbar-item-description { color: inherit; }
-#toolbar .toolbar-session { min-width: 0; color: var(--text80); }
-#toolbar .toolbar-separator { width: 1px; height: 24px; margin: 0 2px; background: var(--border-low); flex: none; }
+#toolbar .danger .toolbar-item-description { color: inherit; opacity: 0.8; }
+#toolbar .toolbar-device.connected .toolbar-item-media { color: var(--primary); }
+#toolbar .toolbar-session {
+  flex: 0 1 260px; min-width: 120px; padding: 5px 4px; color: var(--muted-foreground);
+}
+#toolbar .toolbar-session .toolbar-item-media { background: transparent; }
+#toolbar .toolbar-session .toolbar-item-title { color: var(--foreground); }
+#toolbar .toolbar-separator {
+  align-self: center; flex: none; width: 1px; height: 28px; margin: 0 2px; background: var(--border);
+}
 #transport .transport-stop { display: none; }
 #transport.danger .transport-play { display: none; }
 #transport.danger .transport-stop { display: block; }
+
+@media (max-width: 760px) {
+  #toolbar { gap: 4px; padding: 6px; }
+  #toolbar button.toolbar-item { flex: 1 1 96px; min-height: 38px; max-width: none; padding: 4px 8px; }
+  #toolbar button.toolbar-device { flex: 1 1 100%; min-width: 0; min-height: 44px; }
+  #toolbar button.toolbar-item:not(.toolbar-device) .toolbar-item-description { display: none; }
+  #toolbar .toolbar-session,
+  #toolbar .toolbar-separator,
+  #toolbar .spacer { display: none; }
+}
 
 /* Dark theme: the toolbar drops to the shell's near-black ground and its hairline
    softens to --border; buttons become secondary surfaces with the control radius,
    hover is --muted (the shadcn ghost idiom). .primary/.danger keep their signal
    colours (excluded via :not so the brand and stop actions stay loud). */
-html[data-theme="dark"] #toolbar {
-  background: var(--background); border-bottom-color: var(--border);
-}
-html[data-theme="dark"] #toolbar button:not(.primary):not(.danger),
 html[data-theme="dark"] .pill,
 html[data-theme="dark"] .mini,
 html[data-theme="dark"] .seg {
   background: var(--secondary); color: var(--secondary-foreground);
   border: 1px solid var(--input); border-radius: calc(var(--radius) - 4px);
 }
-html[data-theme="dark"] #toolbar button:hover,
 html[data-theme="dark"] .pill:hover,
 html[data-theme="dark"] .mini:hover { background: var(--muted); }
 html[data-theme="dark"] .primary {

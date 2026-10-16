@@ -81,7 +81,7 @@ export const COLORS = {
  */
 export const CHROME = {
   /** device y 66..125 */
-  toolbarHeight: 30,
+  toolbarHeight: 56,
   /** device y 128..185 */
   axisHeight: 29,
   /** device y 1922..1999 */

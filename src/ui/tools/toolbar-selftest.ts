@@ -32,6 +32,7 @@ function check(name: string, pass: boolean, detail: string): void {
 const html = fs.readFileSync('index.html', 'utf8');
 const app = fs.readFileSync('src/ui/app.ts', 'utf8');
 const capturePanel = fs.readFileSync('src/ui/capturePanel.ts', 'utf8');
+const css = fs.readFileSync('src/ui/style.css', 'utf8');
 const toolbarStart = html.indexOf('<div id="toolbar">');
 const mainStart = html.indexOf('<div id="main">');
 const toolbar = toolbarStart >= 0 && mainStart > toolbarStart
@@ -161,6 +162,23 @@ check(
   'capture summary shares item anatomy without becoming a command',
   sessionSummary,
   `sessionSummary=${sessionSummary}`,
+);
+
+const presentationNeedles = [
+  '#toolbar button.toolbar-item:focus-visible',
+  '#toolbar .toolbar-device.connected .toolbar-item-media { color: var(--primary); }',
+  'max-width: 240px',
+  'display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
+  '#toolbar button.toolbar-device { flex: 1 1 100%; min-width: 0; min-height: 44px; }',
+  '#toolbar button.toolbar-item:not(.toolbar-device) .toolbar-item-description { display: none; }',
+  '#toolbar .toolbar-session,',
+  '#toolbar .spacer { display: none; }',
+];
+const missingPresentation = presentationNeedles.filter((needle) => !css.includes(needle));
+check(
+  'toolbar styles cover focus, connection, truncation, and compact mobile access',
+  missingPresentation.length === 0,
+  `missing=${JSON.stringify(missingPresentation)}`,
 );
 
 console.log(results.map((result) => (

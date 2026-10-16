@@ -37,7 +37,7 @@
 
 import { LOGIC2_CHANNEL_COLORS } from '../../render/index.js';
 import { en } from '../locales/en.js';
-import { CHANNEL_COLORS, CHANNEL_COLOR_PRESETS, ROWS } from '../metrics.js';
+import { CHANNEL_COLORS, CHANNEL_COLOR_PRESETS, CHROME, ROWS } from '../metrics.js';
 import { defaultChannels } from '../state.js';
 import {
   getTheme, initTheme, onThemeChange, pickTheme, setTheme,
@@ -284,6 +284,32 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
     defaultScopes.length === 0 && offenders.length === 0,
     `darkBlocks=${darkBlocks}, defaultScopes=${defaultScopes.length}, ` +
     `metricOffenders=${offenders.join(',') || '(none)'}${darkBlocks === 0 ? ' (vacuous until the token layer lands)' : ''}`);
+}
+
+{
+  const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+  if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
+  const css = fs.readFileSync('src/ui/style.css', 'utf8');
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const toolbarStart = code.indexOf('#toolbar {');
+  const mainStart = code.indexOf('#main {');
+  const toolbar = toolbarStart >= 0 && mainStart > toolbarStart ? code.slice(toolbarStart, mainStart) : '';
+  const cssHeight = Number(/--toolbar-h:\s*(\d+)px/.exec(code)?.[1]);
+  const semanticNeedles = [
+    'background: var(--background)',
+    'border-bottom: 1px solid var(--border)',
+    'background: var(--primary)',
+    'background: var(--destructive)',
+    'background: var(--muted)',
+    'outline: 2px solid var(--ring)',
+  ];
+  const missingSemantic = semanticNeedles.filter((needle) => !toolbar.includes(needle));
+  const darkToolbarOverrides = toolbar.includes('html[data-theme="dark"] #toolbar');
+  const mirror = cssHeight === CHROME.toolbarHeight + CHROME.borderWidth;
+  check('toolbar chrome uses semantic roles and keeps its CSS/TS height mirror',
+    mirror && missingSemantic.length === 0 && !darkToolbarOverrides,
+    `css=${cssHeight}px, ts=${CHROME.toolbarHeight}+${CHROME.borderWidth}px, ` +
+    `missing=${JSON.stringify(missingSemantic)}, darkToolbarOverrides=${darkToolbarOverrides}`);
 }
 
 // ------------------------------------------- channel-card geometry guards (check 11)
