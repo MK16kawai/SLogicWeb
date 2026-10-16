@@ -68,11 +68,13 @@ check(
 );
 
 const stateNeedles = [
-  'this.el.connect.textContent =',
+  'this.el.connectTitle.textContent =',
+  'this.el.connectDescription.textContent =',
   'this.el.connect.disabled = !webusbAvailable',
   'this.el.connect.title =',
-  "t('capturePanel.noWebusb')",
-  "t('capturePanel.reconnect')",
+  "t('toolbar.noWebusb')",
+  "t('toolbar.reconnect')",
+  "t('toolbar.webusbUnavailable')",
 ];
 const missingState = stateNeedles.filter((needle) => !app.includes(needle));
 check(
@@ -93,6 +95,72 @@ check(
   'existing toolbar command bindings remain intact',
   missingActions.length === 0,
   `missing=${JSON.stringify(missingActions)}`,
+);
+
+const commandIds = ['btn-connect', 'transport', 'btn-open', 'btn-save', 'btn-fit', 'btn-settings'];
+
+function commandMarkup(id: string): string {
+  const idIndex = toolbar.indexOf(`id="${id}"`);
+  if (idIndex < 0) return '';
+  const start = toolbar.lastIndexOf('<button', idIndex);
+  const end = toolbar.indexOf('</button>', idIndex);
+  return start >= 0 && end > idIndex ? toolbar.slice(start, end + '</button>'.length) : '';
+}
+
+const anatomyNeedles = [
+  'class="toolbar-item',
+  'class="toolbar-item-media"',
+  'class="toolbar-item-content"',
+  'toolbar-item-title',
+  'toolbar-item-description',
+  'aria-hidden="true"',
+  'focusable="false"',
+  'data-icon="inline-start"',
+];
+const anatomyFailures: string[] = [];
+const iconSignatures = new Set<string>();
+for (const id of commandIds) {
+  const markup = commandMarkup(id);
+  const missing = anatomyNeedles.filter((needle) => !markup.includes(needle));
+  if (missing.length > 0) anatomyFailures.push(`${id}:${missing.join(',')}`);
+  const icon = /<svg\b[^>]*>([\s\S]*?)<\/svg>/.exec(markup)?.[1]?.replace(/\s+/g, '') ?? '';
+  if (icon) iconSignatures.add(icon);
+  else anatomyFailures.push(`${id}:icon`);
+}
+const separatorCount = toolbar.match(/role="separator"/g)?.length ?? 0;
+const verticalSeparatorCount = toolbar.match(/aria-orientation="vertical"/g)?.length ?? 0;
+check(
+  'six commands expose shadcn item anatomy, distinct decorative icons, and separators',
+  anatomyFailures.length === 0 && iconSignatures.size === commandIds.length &&
+    separatorCount === 2 && verticalSeparatorCount === 2,
+  `failures=${JSON.stringify(anatomyFailures)}, icons=${iconSignatures.size}, separators=${separatorCount}/${verticalSeparatorCount}`,
+);
+
+const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
+const dynamicTargets = [
+  "connectTitle: must<HTMLSpanElement>('device-title')",
+  "connectDescription: must<HTMLSpanElement>('device-description')",
+  "transportTitle: must<HTMLSpanElement>('transport-title')",
+  "transportDescription: must<HTMLSpanElement>('transport-description')",
+  'this.el.transportTitle.textContent =',
+  'this.el.transportDescription.textContent = btn.title',
+];
+const missingDynamicTargets = dynamicTargets.filter((needle) => !app.includes(needle));
+const preservedClasses = app.includes("btn.classList.toggle('primary', !this.running)") &&
+  app.includes("btn.classList.toggle('danger', this.running)") && !app.includes('btn.className =');
+check(
+  'nested translation and state rendering preserve every toolbar item structure',
+  directButtonTranslations.length === 0 && missingDynamicTargets.length === 0 && preservedClasses,
+  `direct=${JSON.stringify(directButtonTranslations)}, missing=${JSON.stringify(missingDynamicTargets)}, classes=${preservedClasses}`,
+);
+
+const sessionSummary = toolbar.includes('<span class="toolbar-item toolbar-session">') &&
+  toolbar.includes('id="capture-title" class="toolbar-item-description"') &&
+  toolbar.includes('data-i18n="capturePanel.capture"');
+check(
+  'capture summary shares item anatomy without becoming a command',
+  sessionSummary,
+  `sessionSummary=${sessionSummary}`,
 );
 
 console.log(results.map((result) => (

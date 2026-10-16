@@ -14,6 +14,12 @@ import type { Messages } from './en.js';
 
 export const fr: Messages = {
   // ------------------------------------------------------------- toolbar
+  'toolbar.device': 'Appareil',
+  'toolbar.connect': 'Connecter l’appareil',
+  'toolbar.reconnect': 'Reconnecter',
+  'toolbar.webusbUnavailable': 'WebUSB indisponible',
+  'toolbar.connectHint': 'Cliquez sur « Connecter l’appareil » et choisissez un SLogic16/32 U3. L’autorisation est mémorisée pour cette origine.',
+  'toolbar.noWebusb': 'WebUSB est indisponible dans ce navigateur. Utilisez Brave ou Chrome via http://127.0.0.1.',
   'toolbar.start': 'Démarrer',
   'toolbar.stop': 'Arrêter',
   'toolbar.stopping': 'Arrêt…',
@@ -23,7 +29,7 @@ export const fr: Messages = {
   'toolbar.startTitle': 'Démarrer une capture sur l’appareil connecté',
   'toolbar.stopTitle': 'Arrêter la capture en cours',
   'toolbar.stoppingTitle': 'En attente de l’annulation des transferts USB en cours',
-  'toolbar.connectFirstTitle': 'Connectez d’abord un appareil (barre latérale : ◈)',
+  'toolbar.connectFirstTitle': 'Connectez d’abord un appareil',
   'toolbar.openTitle': 'Charger une session sigrok .sr ou un .lwcap',
   'toolbar.saveTitle': 'Enregistrer cette capture en .lwcap',
   'toolbar.fitTitle': 'Zoomer sur toute la capture',
@@ -91,12 +97,6 @@ export const fr: Messages = {
   'channels.triggerAny': 'Valeur quelconque (X)',
 
   // ------------------------------------------------------- capture panel
-  'capturePanel.noDevice': 'Aucun appareil',
-  'capturePanel.deviceSub': 'Sipeed SLogic U3 via WebUSB',
-  'capturePanel.connectHint': 'Cliquez sur « Connecter l’appareil » et choisissez un SLogic16/32 U3. L’autorisation est mémorisée pour cette origine.',
-  'capturePanel.noWebusb': 'WebUSB est indisponible dans ce navigateur. Utilisez Brave ou Chrome via http://127.0.0.1.',
-  'capturePanel.reconnect': 'Reconnecter',
-  'capturePanel.connect': 'Connecter l’appareil',
   'capturePanel.digital': 'Canaux numériques',
   'capturePanel.all': 'Tous',
   'capturePanel.clear': 'Aucun',

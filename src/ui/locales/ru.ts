@@ -14,6 +14,12 @@ import type { Messages } from './en.js';
 
 export const ru: Messages = {
   // ------------------------------------------------------------- toolbar
+  'toolbar.device': 'Устройство',
+  'toolbar.connect': 'Подключить устройство',
+  'toolbar.reconnect': 'Переподключить',
+  'toolbar.webusbUnavailable': 'WebUSB недоступен',
+  'toolbar.connectHint': 'Нажмите «Подключить устройство» и выберите SLogic16/32 U3. Разрешение запоминается для этого источника.',
+  'toolbar.noWebusb': 'WebUSB недоступен в этом браузере. Используйте Brave или Chrome через http://127.0.0.1.',
   'toolbar.start': 'Старт',
   'toolbar.stop': 'Стоп',
   'toolbar.stopping': 'Остановка…',
@@ -23,7 +29,7 @@ export const ru: Messages = {
   'toolbar.startTitle': 'Начать захват на подключённом устройстве',
   'toolbar.stopTitle': 'Остановить текущий захват',
   'toolbar.stoppingTitle': 'Ожидание отмены ожидающих USB-передач',
-  'toolbar.connectFirstTitle': 'Сначала подключите устройство (панель: ◈)',
+  'toolbar.connectFirstTitle': 'Сначала подключите устройство',
   'toolbar.openTitle': 'Загрузить сессию sigrok .sr или файл .lwcap',
   'toolbar.saveTitle': 'Сохранить этот захват как .lwcap',
   'toolbar.fitTitle': 'Масштабировать на весь захват',
@@ -91,12 +97,6 @@ export const ru: Messages = {
   'channels.triggerAny': 'Любое значение (X)',
 
   // ------------------------------------------------------- capture panel
-  'capturePanel.noDevice': 'Нет устройства',
-  'capturePanel.deviceSub': 'Sipeed SLogic U3 через WebUSB',
-  'capturePanel.connectHint': 'Нажмите «Подключить устройство» и выберите SLogic16/32 U3. Разрешение запоминается для этого источника.',
-  'capturePanel.noWebusb': 'WebUSB недоступен в этом браузере. Используйте Brave или Chrome через http://127.0.0.1.',
-  'capturePanel.reconnect': 'Переподключить',
-  'capturePanel.connect': 'Подключить устройство',
   'capturePanel.digital': 'Цифровые каналы',
   'capturePanel.all': 'Все',
   'capturePanel.clear': 'Ничего',

@@ -125,7 +125,9 @@ export class App {
     scroll: HTMLDivElement;
     channelList: HTMLDivElement; side: HTMLDivElement; status: HTMLDivElement;
     hint: HTMLDivElement; transport: HTMLButtonElement; title: HTMLSpanElement;
-    connect: HTMLButtonElement; fileInput: HTMLInputElement;
+    connect: HTMLButtonElement; connectTitle: HTMLSpanElement; connectDescription: HTMLSpanElement;
+    transportTitle: HTMLSpanElement; transportDescription: HTMLSpanElement;
+    fileInput: HTMLInputElement;
   };
 
   constructor() {
@@ -140,6 +142,10 @@ export class App {
       hint: must<HTMLDivElement>('empty-hint'),
       transport: must<HTMLButtonElement>('transport'),
       connect: must<HTMLButtonElement>('btn-connect'),
+      connectTitle: must<HTMLSpanElement>('device-title'),
+      connectDescription: must<HTMLSpanElement>('device-description'),
+      transportTitle: must<HTMLSpanElement>('transport-title'),
+      transportDescription: must<HTMLSpanElement>('transport-description'),
       title: must<HTMLSpanElement>('capture-title'),
       fileInput: must<HTMLInputElement>('file-input'),
     };
@@ -912,21 +918,26 @@ export class App {
    */
   private renderToolbarState(): void {
     const webusbAvailable = typeof navigator !== 'undefined' && !!navigator.usb;
-    this.el.connect.textContent = this.device?.name ??
-      (webusbAvailable ? t('capturePanel.connect') : t('capturePanel.noDevice'));
+    const deviceName = this.device?.name ?? null;
+    this.el.connectTitle.textContent = deviceName ?? t('toolbar.device');
+    this.el.connectDescription.textContent = !webusbAvailable ? t('toolbar.webusbUnavailable')
+      : deviceName ? t('toolbar.reconnect') : t('toolbar.connect');
     this.el.connect.disabled = !webusbAvailable;
-    this.el.connect.title = !webusbAvailable ? t('capturePanel.noWebusb')
-      : this.device ? t('capturePanel.reconnect') : t('capturePanel.connectHint');
+    this.el.connect.title = !webusbAvailable ? t('toolbar.noWebusb')
+      : deviceName ? t('toolbar.reconnect') : t('toolbar.connectHint');
+    this.el.connect.classList.toggle('connected', deviceName !== null);
 
     const btn = this.el.transport;
-    btn.textContent = this.stopping ? t('toolbar.stopping')
+    this.el.transportTitle.textContent = this.stopping ? t('toolbar.stopping')
       : this.running ? t('toolbar.stop') : t('toolbar.start');
-    btn.className = this.running ? 'danger' : 'primary';
+    btn.classList.toggle('primary', !this.running);
+    btn.classList.toggle('danger', this.running);
     btn.disabled = this.stopping || (!this.running && !this.device);
     btn.title = btn.disabled
       ? this.stopping ? t('toolbar.stoppingTitle')
         : t('toolbar.connectFirstTitle')
       : this.running ? t('toolbar.stopTitle') : t('toolbar.startTitle');
+    this.el.transportDescription.textContent = btn.title;
     this.el.title.textContent = formatCaptureLabel(this.captureLabel);
   }
 

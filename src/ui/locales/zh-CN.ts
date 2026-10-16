@@ -12,6 +12,12 @@ import type { Messages } from './en.js';
 
 export const zhCN: Messages = {
   // ------------------------------------------------------------- toolbar
+  'toolbar.device': '设备',
+  'toolbar.connect': '连接设备',
+  'toolbar.reconnect': '重新连接',
+  'toolbar.webusbUnavailable': 'WebUSB 不可用',
+  'toolbar.connectHint': '点击"连接设备"并选择 SLogic16/32 U3。浏览器会记住此站点的授权。',
+  'toolbar.noWebusb': '此浏览器不支持 WebUSB。请通过 http://127.0.0.1 使用 Brave 或 Chrome。',
   'toolbar.start': '开始',
   'toolbar.stop': '停止',
   'toolbar.stopping': '正在停止…',
@@ -21,7 +27,7 @@ export const zhCN: Messages = {
   'toolbar.startTitle': '在已连接的设备上开始采集',
   'toolbar.stopTitle': '停止正在进行的采集',
   'toolbar.stoppingTitle': '正在等待待处理的 USB 传输被取消',
-  'toolbar.connectFirstTitle': '请先连接设备（侧栏：◈）',
+  'toolbar.connectFirstTitle': '请先连接设备',
   'toolbar.openTitle': '加载 sigrok .sr 会话或 .lwcap 文件',
   'toolbar.saveTitle': '将本次采集保存为 .lwcap',
   'toolbar.fitTitle': '缩放以显示整个采集',
@@ -89,12 +95,6 @@ export const zhCN: Messages = {
   'channels.triggerAny': '任意值（X）',
 
   // ------------------------------------------------------- capture panel
-  'capturePanel.noDevice': '无设备',
-  'capturePanel.deviceSub': 'Sipeed SLogic U3（WebUSB 连接）',
-  'capturePanel.connectHint': '点击"连接设备"并选择 SLogic16/32 U3。浏览器会记住此站点的授权。',
-  'capturePanel.noWebusb': '此浏览器不支持 WebUSB。请通过 http://127.0.0.1 使用 Brave 或 Chrome。',
-  'capturePanel.reconnect': '重新连接',
-  'capturePanel.connect': '连接设备',
   'capturePanel.digital': '数字通道',
   'capturePanel.all': '全选',
   'capturePanel.clear': '清空',

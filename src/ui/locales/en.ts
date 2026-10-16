@@ -18,6 +18,12 @@
 
 export const en = {
   // ------------------------------------------------------------- toolbar
+  'toolbar.device': 'Device',
+  'toolbar.connect': 'Connect device',
+  'toolbar.reconnect': 'Reconnect',
+  'toolbar.webusbUnavailable': 'WebUSB unavailable',
+  'toolbar.connectHint': 'Click Connect and pick an SLogic16/32 U3. The grant is remembered for this origin.',
+  'toolbar.noWebusb': 'WebUSB is unavailable in this browser. Use Brave or Chrome over http://127.0.0.1.',
   'toolbar.start': 'Start',
   'toolbar.stop': 'Stop',
   'toolbar.stopping': 'Stopping…',
@@ -27,7 +33,7 @@ export const en = {
   'toolbar.startTitle': 'Start a capture on the connected device',
   'toolbar.stopTitle': 'Stop the running capture',
   'toolbar.stoppingTitle': 'Waiting for pending USB transfers to be cancelled',
-  'toolbar.connectFirstTitle': 'Connect a device first (rail: ◈)',
+  'toolbar.connectFirstTitle': 'Connect a device first',
   'toolbar.openTitle': 'Load a sigrok .sr session or a .lwcap',
   'toolbar.saveTitle': 'Save this capture as .lwcap',
   'toolbar.fitTitle': 'Zoom to the whole capture',
@@ -95,12 +101,6 @@ export const en = {
   'channels.triggerAny': 'Any value (X)',
 
   // ------------------------------------------------------- capture panel
-  'capturePanel.noDevice': 'No device',
-  'capturePanel.deviceSub': 'Sipeed SLogic U3 over WebUSB',
-  'capturePanel.connectHint': 'Click Connect and pick an SLogic16/32 U3. The grant is remembered for this origin.',
-  'capturePanel.noWebusb': 'WebUSB is unavailable in this browser. Use Brave or Chrome over http://127.0.0.1.',
-  'capturePanel.reconnect': 'Reconnect',
-  'capturePanel.connect': 'Connect device',
   'capturePanel.digital': 'Digital',
   'capturePanel.all': 'All',
   'capturePanel.clear': 'Clear',
