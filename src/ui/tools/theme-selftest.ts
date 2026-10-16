@@ -284,6 +284,12 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
     defaultScopes.length === 0 && offenders.length === 0,
     `darkBlocks=${darkBlocks}, defaultScopes=${defaultScopes.length}, ` +
     `metricOffenders=${offenders.join(',') || '(none)'}${darkBlocks === 0 ? ' (vacuous until the token layer lands)' : ''}`);
+
+  const undeclaredMetrics = METRIC_VARS.filter((v) => !new RegExp(`${v}\\s*:`).test(code));
+  const railMetricRetired = !/--rail-w\s*:/.test(code);
+  check('style.css: the frozen metric set is exactly the live vars and --rail-w is retired',
+    undeclaredMetrics.length === 0 && railMetricRetired,
+    `undeclared=${JSON.stringify(undeclaredMetrics)}, railMetric=${railMetricRetired}`);
 }
 
 {

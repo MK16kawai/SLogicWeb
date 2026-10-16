@@ -34,6 +34,7 @@ const app = fs.readFileSync('src/ui/app.ts', 'utf8');
 const capturePanel = fs.readFileSync('src/ui/capturePanel.ts', 'utf8');
 const settingsMenuSrc = fs.readFileSync('src/ui/settingsMenu.ts', 'utf8');
 const css = fs.readFileSync('src/ui/style.css', 'utf8');
+const metricsSrc = fs.readFileSync('src/ui/metrics.ts', 'utf8');
 const toolbarStart = html.indexOf('<div id="toolbar">');
 const mainStart = html.indexOf('<div id="main">');
 const toolbar = toolbarStart >= 0 && mainStart > toolbarStart
@@ -308,10 +309,11 @@ const railWiringAbsent = !app.includes('wireRail') &&
   !app.includes("'rail-device'") && !app.includes("'rail-analyzers'");
 const railStylesAbsent = !css.includes('#rail') && !css.includes('.rail-btn') &&
   !css.includes('--rail-w');
+const railMetricAbsent = !metricsSrc.includes('railWidth');
 check(
-  'the legacy rail markup, wiring, styles, and width metric are absent',
-  railMarkupAbsent && railWiringAbsent && railStylesAbsent,
-  `markup=${railMarkupAbsent}, wiring=${railWiringAbsent}, styles=${railStylesAbsent}`,
+  'the legacy rail markup, wiring, styles, and both width metrics are absent',
+  railMarkupAbsent && railWiringAbsent && railStylesAbsent && railMetricAbsent,
+  `markup=${railMarkupAbsent}, wiring=${railWiringAbsent}, styles=${railStylesAbsent}, tsMetric=${railMetricAbsent}`,
 );
 
 const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
