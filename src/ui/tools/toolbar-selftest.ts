@@ -156,6 +156,17 @@ check(
   `fit@${fitIndex}, settingsSeparator@${settingsSeparatorIndex}, settings@${settingsIndex}, spacer@${spacerIndex}`,
 );
 
+const settingsToSpacer = settingsIndex >= 0 && spacerIndex > settingsIndex
+  ? toolbar.slice(settingsIndex, spacerIndex)
+  : '';
+const settingsDirectlyBeforeSpacer = settingsToSpacer.length > 0 &&
+  !settingsToSpacer.includes('<button') && !settingsToSpacer.includes('role="separator"');
+check(
+  'no command or separator sits between settings and the spacer',
+  settingsDirectlyBeforeSpacer,
+  `segment=${JSON.stringify(settingsToSpacer.replace(/\s+/g, ' '))}`,
+);
+
 const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
 const dynamicTargets = [
   "connectTitle: must<HTMLSpanElement>('device-title')",
