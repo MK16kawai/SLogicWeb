@@ -268,6 +268,56 @@ check(
   `missing=${JSON.stringify(missingSidebarChoices)}, shape=${selectPanelShape}, shared=${sharedPanelPath}`,
 );
 
+const sidebarItemsStart = app.indexOf('private sidebarItems(');
+const sidebarItemsEnd = sidebarItemsStart >= 0 ? app.indexOf('\n  }', sidebarItemsStart) : -1;
+const sidebarItemsBody = sidebarItemsStart >= 0 && sidebarItemsEnd > sidebarItemsStart
+  ? app.slice(sidebarItemsStart, sidebarItemsEnd)
+  : '';
+const sidebarRowCount = sidebarItemsBody.match(/onPick:/g)?.length ?? 0;
+const sidebarLeavesOnly = sidebarRowCount === 3 &&
+  !sidebarItemsBody.includes('children:') && !sidebarItemsBody.includes('hint:');
+const sidebarLabelsTranslated = ['sidebarDevice', 'sidebarAnalyzers', 'sidebarNone']
+  .every((key) => sidebarItemsBody.includes(`t('toolbar.${key}')`));
+check(
+  'the selector menu offers three direct leaf choices built with translated labels',
+  sidebarLeavesOnly && sidebarLabelsTranslated,
+  `rows=${sidebarRowCount}, leaves=${sidebarLeavesOnly}, translated=${sidebarLabelsTranslated}`,
+);
+
+const settingsHandlerStart = app.indexOf("must<HTMLButtonElement>('btn-settings').addEventListener('click'");
+const settingsHandlerEnd = settingsHandlerStart >= 0 ? app.indexOf('\n    });', settingsHandlerStart) : -1;
+const settingsHandler = settingsHandlerStart >= 0 && settingsHandlerEnd > settingsHandlerStart
+  ? app.slice(settingsHandlerStart, settingsHandlerEnd)
+  : '';
+const sidebarHandlerStart = app.indexOf("this.el.sidebar.addEventListener('click'");
+const sidebarHandlerEnd = sidebarHandlerStart >= 0 ? app.indexOf('\n    });', sidebarHandlerStart) : -1;
+const sidebarHandler = sidebarHandlerStart >= 0 && sidebarHandlerEnd > sidebarHandlerStart
+  ? app.slice(sidebarHandlerStart, sidebarHandlerEnd)
+  : '';
+const settingsClosesSidebar = settingsHandler.includes("this.sidebarMenu.close('outside')") &&
+  settingsHandler.includes('this.settingsMenu.toggle(this.settingsItems())') &&
+  settingsHandler.includes('this.channelList.closeDialog()');
+const sidebarClosesSettings = sidebarHandler.includes("this.settingsMenu.close('outside')") &&
+  sidebarHandler.includes('this.sidebarMenu.toggle(this.sidebarItems())') &&
+  sidebarHandler.includes('this.channelList.closeDialog()');
+check(
+  'opening either toolbar menu closes the other menu and the channel dialog',
+  settingsClosesSidebar && sidebarClosesSettings,
+  `settings=${settingsClosesSidebar}, sidebar=${sidebarClosesSettings}`,
+);
+
+const railDelegations = wireRailBody.match(/this\.selectPanel\(/g)?.length ?? 0;
+const railRetained = html.includes('id="rail"') &&
+  html.includes('id="rail-device"') && html.includes('id="rail-analyzers"') &&
+  wireRailBody.includes("must<HTMLButtonElement>('rail-device')") &&
+  wireRailBody.includes("must<HTMLButtonElement>('rail-analyzers')") &&
+  railDelegations === 2;
+check(
+  'the additive phase keeps both rail buttons wired through the shared selection path',
+  railRetained,
+  `railMarkup=${html.includes('id="rail"')}, delegations=${railDelegations}`,
+);
+
 const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
 const dynamicTargets = [
   "connectTitle: must<HTMLSpanElement>('device-title')",
