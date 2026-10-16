@@ -144,12 +144,15 @@ const dynamicTargets = [
   'this.el.transportTitle.textContent =',
 ];
 const missingDynamicTargets = dynamicTargets.filter((needle) => !app.includes(needle));
+const retiredTransportDescription = ['transportDescription', 'transport-description']
+  .filter((needle) => app.includes(needle) || toolbar.includes(needle));
 const preservedClasses = app.includes("btn.classList.toggle('primary', !this.running)") &&
   app.includes("btn.classList.toggle('danger', this.running)") && !app.includes('btn.className =');
 check(
   'nested translation and state rendering preserve every toolbar item structure',
-  directButtonTranslations.length === 0 && missingDynamicTargets.length === 0 && preservedClasses,
-  `direct=${JSON.stringify(directButtonTranslations)}, missing=${JSON.stringify(missingDynamicTargets)}, classes=${preservedClasses}`,
+  directButtonTranslations.length === 0 && missingDynamicTargets.length === 0 &&
+    retiredTransportDescription.length === 0 && preservedClasses,
+  `direct=${JSON.stringify(directButtonTranslations)}, missing=${JSON.stringify(missingDynamicTargets)}, retired=${JSON.stringify(retiredTransportDescription)}, classes=${preservedClasses}`,
 );
 
 const sessionSummary = toolbar.includes('<span class="toolbar-item toolbar-session">') &&
@@ -159,6 +162,27 @@ check(
   'capture summary shares item anatomy without becoming a command',
   sessionSummary,
   `sessionSummary=${sessionSummary}`,
+);
+
+const descriptionCounts = commandIds.map((id) => (
+  commandMarkup(id).match(/toolbar-item-description/g)?.length ?? 0
+));
+const expectedDescriptionCounts = [1, 0, 0, 0, 0, 0];
+check(
+  'only the device command and non-button capture summary retain descriptions',
+  JSON.stringify(descriptionCounts) === JSON.stringify(expectedDescriptionCounts) && sessionSummary,
+  `commands=${JSON.stringify(Object.fromEntries(commandIds.map((id, index) => [id, descriptionCounts[index]])))}, capture=${sessionSummary}`,
+);
+
+const retiredDescriptionStyles = [
+  '#toolbar .primary .toolbar-item-description',
+  '#toolbar .danger .toolbar-item-description',
+  '#toolbar button.toolbar-item:not(.toolbar-device) .toolbar-item-description { display: none; }',
+].filter((needle) => css.includes(needle));
+check(
+  'retired command description styles stay absent',
+  retiredDescriptionStyles.length === 0,
+  `leftovers=${JSON.stringify(retiredDescriptionStyles)}`,
 );
 
 const presentationNeedles = [
