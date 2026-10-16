@@ -125,7 +125,7 @@ export class App {
     scroll: HTMLDivElement;
     channelList: HTMLDivElement; side: HTMLDivElement; status: HTMLDivElement;
     hint: HTMLDivElement; transport: HTMLButtonElement; title: HTMLSpanElement;
-    fileInput: HTMLInputElement;
+    connect: HTMLButtonElement; fileInput: HTMLInputElement;
   };
 
   constructor() {
@@ -139,6 +139,7 @@ export class App {
       status: must<HTMLDivElement>('status'),
       hint: must<HTMLDivElement>('empty-hint'),
       transport: must<HTMLButtonElement>('transport'),
+      connect: must<HTMLButtonElement>('btn-connect'),
       title: must<HTMLSpanElement>('capture-title'),
       fileInput: must<HTMLInputElement>('file-input'),
     };
@@ -178,7 +179,6 @@ export class App {
       },
       onToggleChannel: (i, on) => this.setChannelEnabled(i, on),
       onSetAllChannels: (on) => this.setAllChannels(on),
-      onConnect: () => void this.connect(),
       onUsbControl: (command) => this.usbControl(command),
     });
     this.analyzerPanel = new AnalyzerPanel(panelHost, {
@@ -782,6 +782,7 @@ export class App {
   // ------------------------------------------------------------------ toolbar / rail
 
   private wireToolbar(): void {
+    this.el.connect.addEventListener('click', () => void this.connect());
     this.el.transport.addEventListener('click', () => {
       if (this.running) void this.stopCapture(); else void this.startCapture();
     });
@@ -884,7 +885,6 @@ export class App {
             lost: this.lostSamples,
           }
           : null,
-        webusbAvailable: typeof navigator !== 'undefined' && !!navigator.usb,
         maxSamplerateHz: this.rateCeilings,
         triggerState: this.triggerState,
       });
@@ -911,6 +911,13 @@ export class App {
    * vanished mid-run.
    */
   private renderToolbarState(): void {
+    const webusbAvailable = typeof navigator !== 'undefined' && !!navigator.usb;
+    this.el.connect.textContent = this.device?.name ??
+      (webusbAvailable ? t('capturePanel.connect') : t('capturePanel.noDevice'));
+    this.el.connect.disabled = !webusbAvailable;
+    this.el.connect.title = !webusbAvailable ? t('capturePanel.noWebusb')
+      : this.device ? t('capturePanel.reconnect') : t('capturePanel.connectHint');
+
     const btn = this.el.transport;
     btn.textContent = this.stopping ? t('toolbar.stopping')
       : this.running ? t('toolbar.stop') : t('toolbar.start');

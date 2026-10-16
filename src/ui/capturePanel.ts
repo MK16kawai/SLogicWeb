@@ -29,7 +29,6 @@ export interface CapturePanelCallbacks {
   onSettings(next: CaptureSettings): void;
   onToggleChannel(index: number, enabled: boolean): void;
   onSetAllChannels(enabled: boolean): void;
-  onConnect(): void;
   onUsbControl(command: string): Promise<string>;
 }
 
@@ -41,7 +40,6 @@ export interface CapturePanelView {
   stopping: boolean;
   /** Non-null while a capture is streaming. */
   progress: { seconds: number; samples: number; bytes: number; lost: number } | null;
-  webusbAvailable: boolean;
   maxSamplerateHz: Readonly<Record<number, number>>;
   triggerState: 'off' | 'waiting' | 'triggered' | 'not-found';
 }
@@ -58,23 +56,6 @@ export class CapturePanel {
   render(v: CapturePanelView): void {
     const s = v.settings;
     this.root.replaceChildren();
-
-    const head = div('panel-head');
-    const title = div('panel-title');
-    title.textContent = v.deviceName ?? t('capturePanel.noDevice');
-    head.appendChild(title);
-    const sub = div('panel-sub');
-    sub.textContent = v.deviceName
-      ? t('capturePanel.deviceSub')
-      : v.webusbAvailable
-        ? t('capturePanel.connectHint')
-        : t('capturePanel.noWebusb');
-    head.appendChild(sub);
-    const connect = button(v.deviceName ? t('capturePanel.reconnect') : t('capturePanel.connect'), 'pill');
-    connect.disabled = !v.webusbAvailable;
-    connect.addEventListener('click', () => this.cb.onConnect());
-    head.appendChild(connect);
-    this.root.appendChild(head);
 
     // ---- channels
     const chSec = section(t('capturePanel.digital'));
