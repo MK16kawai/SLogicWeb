@@ -32,6 +32,7 @@ function check(name: string, pass: boolean, detail: string): void {
 const html = fs.readFileSync('index.html', 'utf8');
 const app = fs.readFileSync('src/ui/app.ts', 'utf8');
 const capturePanel = fs.readFileSync('src/ui/capturePanel.ts', 'utf8');
+const settingsMenuSrc = fs.readFileSync('src/ui/settingsMenu.ts', 'utf8');
 const css = fs.readFileSync('src/ui/style.css', 'utf8');
 const toolbarStart = html.indexOf('<div id="toolbar">');
 const mainStart = html.indexOf('<div id="main">');
@@ -98,7 +99,9 @@ check(
   `missing=${JSON.stringify(missingActions)}`,
 );
 
-const commandIds = ['btn-connect', 'transport', 'btn-open', 'btn-save', 'btn-fit', 'btn-settings'];
+const leftCommandIds = ['btn-connect', 'transport', 'btn-open', 'btn-save', 'btn-fit', 'btn-settings'];
+const sidebarCommandId = 'btn-sidebar';
+const commandIds = [...leftCommandIds, sidebarCommandId];
 
 function commandMarkup(id: string): string {
   const idIndex = toolbar.indexOf(`id="${id}"`);
@@ -108,29 +111,39 @@ function commandMarkup(id: string): string {
   return start >= 0 && end > idIndex ? toolbar.slice(start, end + '</button>'.length) : '';
 }
 
-const anatomyNeedles = [
+const sharedAnatomyNeedles = [
   'class="toolbar-item',
   'class="toolbar-item-media"',
-  'class="toolbar-item-content"',
-  'toolbar-item-title',
   'aria-hidden="true"',
   'focusable="false"',
   'data-icon="inline-start"',
 ];
+const textAnatomyNeedles = ['class="toolbar-item-content"', 'toolbar-item-title'];
 const anatomyFailures: string[] = [];
 const iconSignatures = new Set<string>();
-for (const id of commandIds) {
+const iconBody = (markup: string): string =>
+  /<svg\b[^>]*>([\s\S]*?)<\/svg>/.exec(markup)?.[1]?.replace(/\s+/g, '') ?? '';
+for (const id of leftCommandIds) {
   const markup = commandMarkup(id);
-  const missing = anatomyNeedles.filter((needle) => !markup.includes(needle));
+  const missing = [...sharedAnatomyNeedles, ...textAnatomyNeedles]
+    .filter((needle) => !markup.includes(needle));
   if (missing.length > 0) anatomyFailures.push(`${id}:${missing.join(',')}`);
-  const icon = /<svg\b[^>]*>([\s\S]*?)<\/svg>/.exec(markup)?.[1]?.replace(/\s+/g, '') ?? '';
+  const icon = iconBody(markup);
   if (icon) iconSignatures.add(icon);
   else anatomyFailures.push(`${id}:icon`);
 }
+const sidebarMarkup = commandMarkup(sidebarCommandId);
+const sidebarAnatomyMissing = sharedAnatomyNeedles.filter((needle) => !sidebarMarkup.includes(needle));
+const sidebarTextLeaks = textAnatomyNeedles.filter((needle) => sidebarMarkup.includes(needle));
+if (sidebarAnatomyMissing.length > 0) anatomyFailures.push(`${sidebarCommandId}:${sidebarAnatomyMissing.join(',')}`);
+if (sidebarTextLeaks.length > 0) anatomyFailures.push(`${sidebarCommandId}:text(${sidebarTextLeaks.join(',')})`);
+const sidebarIcon = iconBody(sidebarMarkup);
+if (sidebarIcon) iconSignatures.add(sidebarIcon);
+else anatomyFailures.push(`${sidebarCommandId}:icon`);
 const separatorCount = toolbar.match(/role="separator"/g)?.length ?? 0;
 const verticalSeparatorCount = toolbar.match(/aria-orientation="vertical"/g)?.length ?? 0;
 check(
-  'six commands expose shadcn item anatomy, distinct decorative icons, and separators',
+  'seven commands expose shadcn anatomy (six text, one icon-only), distinct decorative icons, and separators',
   anatomyFailures.length === 0 && iconSignatures.size === commandIds.length &&
     separatorCount === 2 && verticalSeparatorCount === 2,
   `failures=${JSON.stringify(anatomyFailures)}, icons=${iconSignatures.size}, separators=${separatorCount}/${verticalSeparatorCount}`,
@@ -144,7 +157,7 @@ const settingsSeparatorIndex = settingsIndex >= 0
   : -1;
 const settingsBeforeSpacer = fitIndex >= 0 && settingsSeparatorIndex > fitIndex &&
   settingsIndex > settingsSeparatorIndex && spacerIndex > settingsIndex;
-const earlierCommandIndexes = commandIds
+const earlierCommandIndexes = leftCommandIds
   .filter((id) => id !== 'btn-settings')
   .map((id) => toolbar.indexOf(`id="${id}"`));
 const settingsIsLastLeftCommand = settingsIndex >= 0 &&
@@ -165,6 +178,94 @@ check(
   'no command or separator sits between settings and the spacer',
   settingsDirectlyBeforeSpacer,
   `segment=${JSON.stringify(settingsToSpacer.replace(/\s+/g, ' '))}`,
+);
+
+const sidebarIndex = toolbar.indexOf(`id="${sidebarCommandId}"`);
+const sidebarButtonStart = sidebarIndex >= 0 ? toolbar.lastIndexOf('<button', sidebarIndex) : -1;
+const sidebarAfterSpacer = spacerIndex >= 0 && sidebarButtonStart > spacerIndex;
+const spacerToSidebar = sidebarAfterSpacer ? toolbar.slice(spacerIndex, sidebarButtonStart) : '';
+const sidebarDirectlyAfterSpacer = spacerToSidebar.length > 0 &&
+  !spacerToSidebar.includes('<button') && !spacerToSidebar.includes('role="separator"');
+const lastButtonIndex = toolbar.lastIndexOf('<button');
+const sidebarIsFinalCommand = lastButtonIndex >= 0 && lastButtonIndex === sidebarButtonStart &&
+  toolbar.indexOf('role="separator"', sidebarIndex) === -1;
+check(
+  'the icon-only sidebar selector is the final toolbar command after the spacer',
+  sidebarAfterSpacer && sidebarDirectlyAfterSpacer && sidebarIsFinalCommand,
+  `spacer@${spacerIndex}, sidebar@${sidebarIndex}, afterSpacer=${sidebarAfterSpacer}, directlyAfter=${sidebarDirectlyAfterSpacer}, final=${sidebarIsFinalCommand}`,
+);
+
+const disclosureNeedles = [
+  'aria-controls="sidebar-menu"',
+  'aria-expanded="false"',
+  'data-i18n-title="toolbar.sidebarTitle"',
+];
+const missingDisclosure = disclosureNeedles.filter((needle) => !sidebarMarkup.includes(needle));
+const sidebarHasAccessibleName = /\saria-label="[^"]+"/.test(sidebarMarkup);
+check(
+  'the sidebar selector is a disclosure with a translated tooltip and accessible name',
+  missingDisclosure.length === 0 && sidebarHasAccessibleName,
+  `missing=${JSON.stringify(missingDisclosure)}, ariaLabel=${sidebarHasAccessibleName}`,
+);
+
+const sidebarWiringNeedles = [
+  "new SettingsMenu(this.el.sidebar, 'sidebar-menu')",
+  'this.sidebarMenu.toggle(this.sidebarItems())',
+  "this.el.sidebar.addEventListener('click'",
+  "this.sidebarMenu.close('outside')",
+  "this.settingsMenu.close('outside')",
+  "this.sidebarMenu.close('retranslate')",
+  "this.settingsMenu.close('retranslate')",
+  "this.sidebarMenu.close('theme')",
+  "this.settingsMenu.close('theme')",
+  "this.el.sidebar.setAttribute('aria-label', t('toolbar.sidebarTitle'))",
+];
+const missingSidebarWiring = sidebarWiringNeedles.filter((needle) => !app.includes(needle));
+const menuIdConstructor = /constructor\([\s\S]*?menuId: string = 'settings-menu'/.test(settingsMenuSrc) &&
+  settingsMenuSrc.includes('menu.id = this.menuId;');
+check(
+  'the sidebar selector reuses the settings menu with a distinct id and mutual overlay closure',
+  missingSidebarWiring.length === 0 && menuIdConstructor,
+  `missing=${JSON.stringify(missingSidebarWiring)}, menuId=${menuIdConstructor}`,
+);
+
+const sidebarChoiceNeedles = [
+  "t('toolbar.sidebarDevice')",
+  "t('toolbar.sidebarAnalyzers')",
+  "t('toolbar.sidebarNone')",
+  "checked: this.panel === 'device'",
+  "checked: this.panel === 'analyzers'",
+  'checked: this.panel === null',
+  "this.selectPanel('device')",
+  "this.selectPanel('analyzers')",
+  'this.selectPanel(null)',
+];
+const missingSidebarChoices = sidebarChoiceNeedles.filter((needle) => !app.includes(needle));
+const selectPanelStart = app.indexOf('private selectPanel(');
+const selectPanelEnd = selectPanelStart >= 0 ? app.indexOf('\n  }', selectPanelStart) : -1;
+const selectPanelBody = selectPanelStart >= 0 && selectPanelEnd > selectPanelStart
+  ? app.slice(selectPanelStart, selectPanelEnd)
+  : '';
+const selectPanelShape = selectPanelBody.includes("this.sidebarMenu.close('outside')") &&
+  selectPanelBody.includes('this.panel = p;') &&
+  selectPanelBody.includes('this.renderPanels();') &&
+  selectPanelBody.includes('this.relayout();');
+const wireRailStart = app.indexOf('private wireRail(): void {');
+const renderPanelsStart = app.indexOf('private renderPanels(): void {');
+const wireRailBody = wireRailStart >= 0 && renderPanelsStart > wireRailStart
+  ? app.slice(wireRailStart, renderPanelsStart)
+  : '';
+const setPanelStart = app.indexOf("setPanel: (p: 'device' | 'analyzers' | null) => {");
+const setPanelEnd = setPanelStart >= 0 ? app.indexOf('\n    },', setPanelStart) : -1;
+const setPanelBody = setPanelStart >= 0 && setPanelEnd > setPanelStart
+  ? app.slice(setPanelStart, setPanelEnd)
+  : '';
+const sharedPanelPath = wireRailBody.includes('this.selectPanel(') &&
+  setPanelBody.includes('this.selectPanel(');
+check(
+  'three checked direct choices drive the panel through one shared selection path',
+  missingSidebarChoices.length === 0 && selectPanelShape && sharedPanelPath,
+  `missing=${JSON.stringify(missingSidebarChoices)}, shape=${selectPanelShape}, shared=${sharedPanelPath}`,
 );
 
 const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
@@ -218,7 +319,7 @@ check(
 const descriptionCounts = commandIds.map((id) => (
   commandMarkup(id).match(/toolbar-item-description/g)?.length ?? 0
 ));
-const expectedDescriptionCounts = [1, 0, 0, 0, 0, 0];
+const expectedDescriptionCounts = [1, 0, 0, 0, 0, 0, 0];
 check(
   'only the device command retains a toolbar description',
   JSON.stringify(descriptionCounts) === JSON.stringify(expectedDescriptionCounts),
@@ -245,12 +346,25 @@ const presentationNeedles = [
   'display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
   '#toolbar button.toolbar-device { min-height: 44px; }',
   '#toolbar .spacer { display: none; }',
+  '#toolbar .toolbar-sidebar { margin-left: auto; }',
 ];
 const missingPresentation = presentationNeedles.filter((needle) => !css.includes(needle));
 check(
   'toolbar styles cover focus, connection, truncation, and compact mobile access',
   missingPresentation.length === 0,
   `missing=${JSON.stringify(missingPresentation)}`,
+);
+
+const mobileBlockStart = css.indexOf('@media (max-width: 760px) {');
+const mobileBlockEnd = mobileBlockStart >= 0 ? css.indexOf('\n}', mobileBlockStart) : -1;
+const mobileBlock = mobileBlockStart >= 0 && mobileBlockEnd > mobileBlockStart
+  ? css.slice(mobileBlockStart, mobileBlockEnd)
+  : '';
+const sidebarMobileAutoMargin = mobileBlock.includes('#toolbar .toolbar-sidebar { margin-left: auto; }');
+check(
+  'the sidebar selector stays far-right at the mobile breakpoint where the spacer is hidden',
+  mobileBlock.includes('#toolbar .spacer { display: none; }') && sidebarMobileAutoMargin,
+  `mobileBlock=${mobileBlock.length}, autoMargin=${sidebarMobileAutoMargin}`,
 );
 
 const intrinsicDesktop = css.includes('#toolbar button.toolbar-item {\n  flex: 0 0 auto;\n  width: fit-content;');

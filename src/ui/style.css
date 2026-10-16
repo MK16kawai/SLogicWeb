@@ -251,6 +251,7 @@ button:active { box-shadow: inset 0 0 0 999px rgb(0 0 0 / 25%); }
   #toolbar button.toolbar-device { min-height: 44px; }
   #toolbar .toolbar-separator,
   #toolbar .spacer { display: none; }
+  #toolbar .toolbar-sidebar { margin-left: auto; }
 }
 
 /* Dark theme: the toolbar drops to the shell's near-black ground and its hairline

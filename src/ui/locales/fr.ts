@@ -33,6 +33,10 @@ export const fr: Messages = {
   'toolbar.openTitle': 'Charger une session sigrok .sr ou un .lwcap',
   'toolbar.saveTitle': 'Enregistrer cette capture en .lwcap',
   'toolbar.fitTitle': 'Zoomer sur toute la capture',
+  'toolbar.sidebarTitle': 'Choisir le panneau latéral droit',
+  'toolbar.sidebarDevice': 'Appareil et réglages de capture',
+  'toolbar.sidebarAnalyzers': 'Analyseurs de protocole',
+  'toolbar.sidebarNone': 'Aucun panneau latéral',
 
   // ---------------------------------------------------- capture title
   'capture.none': 'aucune capture',

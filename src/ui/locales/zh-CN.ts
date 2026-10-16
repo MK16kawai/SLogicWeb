@@ -31,6 +31,10 @@ export const zhCN: Messages = {
   'toolbar.openTitle': '加载 sigrok .sr 会话或 .lwcap 文件',
   'toolbar.saveTitle': '将本次采集保存为 .lwcap',
   'toolbar.fitTitle': '缩放以显示整个采集',
+  'toolbar.sidebarTitle': '选择右侧边栏',
+  'toolbar.sidebarDevice': '设备与采集设置',
+  'toolbar.sidebarAnalyzers': '协议分析器',
+  'toolbar.sidebarNone': '无侧边栏',
 
   // ---------------------------------------------------- capture title
   'capture.none': '无采集',

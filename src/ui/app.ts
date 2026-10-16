@@ -70,6 +70,7 @@ export class App {
   private readonly capturePanel: CapturePanel;
   private readonly analyzerPanel: AnalyzerPanel;
   private readonly settingsMenu: SettingsMenu;
+  private readonly sidebarMenu: SettingsMenu;
   private readonly decodeClient = sharedDecodeClient({
     // Resolve from the document, not from the worker script. This supports static sites
     // hosted below a subdirectory and keeps all runtime files together in dist/.
@@ -126,7 +127,7 @@ export class App {
     channelList: HTMLDivElement; side: HTMLDivElement; status: HTMLDivElement;
     hint: HTMLDivElement; transport: HTMLButtonElement;
     connect: HTMLButtonElement; connectTitle: HTMLSpanElement; connectDescription: HTMLSpanElement;
-    transportTitle: HTMLSpanElement;
+    transportTitle: HTMLSpanElement; sidebar: HTMLButtonElement;
     fileInput: HTMLInputElement;
   };
 
@@ -145,6 +146,7 @@ export class App {
       connectTitle: must<HTMLSpanElement>('device-title'),
       connectDescription: must<HTMLSpanElement>('device-description'),
       transportTitle: must<HTMLSpanElement>('transport-title'),
+      sidebar: must<HTMLButtonElement>('btn-sidebar'),
       fileInput: must<HTMLInputElement>('file-input'),
     };
 
@@ -154,6 +156,7 @@ export class App {
     applyStaticI18n(document);
 
     this.settingsMenu = new SettingsMenu(must<HTMLButtonElement>('btn-settings'));
+    this.sidebarMenu = new SettingsMenu(this.el.sidebar, 'sidebar-menu');
 
     this.storeRef = new StoreRef(createSampleStore(16, 16e6));
     this.stack = new WaveformStack(this.el.waveStack, this.storeRef);
@@ -204,7 +207,10 @@ export class App {
     // re-renders (a loaded/running capture is untouched). The transient settings menu
     // would keep a stale checkmark, though, so it closes - same class as 'retranslate':
     // no focus hand-off for a programmatic switch.
-    onThemeChange(() => this.settingsMenu.close('theme'));
+    onThemeChange(() => {
+      this.settingsMenu.close('theme');
+      this.sidebarMenu.close('theme');
+    });
 
     // Observe the scroll viewport, not the plot: the plot's height is now an *output*
     // of relayout (its canvases stack in normal flow so the rows can scroll), and
@@ -806,7 +812,13 @@ export class App {
     must<HTMLButtonElement>('btn-settings').addEventListener('click', () => {
       // Keep the channel dialog and this transient menu from competing for focus.
       this.channelList.closeDialog();
+      this.sidebarMenu.close('outside');
       this.settingsMenu.toggle(this.settingsItems());
+    });
+    this.el.sidebar.addEventListener('click', () => {
+      this.channelList.closeDialog();
+      this.settingsMenu.close('outside');
+      this.sidebarMenu.toggle(this.sidebarItems());
     });
   }
 
@@ -835,9 +847,37 @@ export class App {
     ];
   }
 
+  private sidebarItems(): SettingsMenuItem[] {
+    return [
+      {
+        label: t('toolbar.sidebarDevice'),
+        checked: this.panel === 'device',
+        onPick: () => this.selectPanel('device'),
+      },
+      {
+        label: t('toolbar.sidebarAnalyzers'),
+        checked: this.panel === 'analyzers',
+        onPick: () => this.selectPanel('analyzers'),
+      },
+      {
+        label: t('toolbar.sidebarNone'),
+        checked: this.panel === null,
+        onPick: () => this.selectPanel(null),
+      },
+    ];
+  }
+
+  private selectPanel(p: 'device' | 'analyzers' | null): void {
+    this.sidebarMenu.close('outside');
+    this.panel = p;
+    this.renderPanels();
+    this.relayout();
+  }
+
   /** Re-render every string in the shell after a locale change. */
   private retranslate(): void {
     this.settingsMenu.close('retranslate');
+    this.sidebarMenu.close('retranslate');
     applyStaticI18n(document);
     this.relayout();       // channel cells rebuild; an open channel dialog closes here
     this.renderPanels();   // side panels + toolbar chrome
@@ -848,14 +888,10 @@ export class App {
     const dev = must<HTMLButtonElement>('rail-device');
     const ana = must<HTMLButtonElement>('rail-analyzers');
     dev.addEventListener('click', () => {
-      this.panel = this.panel === 'device' ? null : 'device';
-      this.renderPanels();
-      this.relayout();
+      this.selectPanel(this.panel === 'device' ? null : 'device');
     });
     ana.addEventListener('click', () => {
-      this.panel = this.panel === 'analyzers' ? null : 'analyzers';
-      this.renderPanels();
-      this.relayout();
+      this.selectPanel(this.panel === 'analyzers' ? null : 'analyzers');
     });
   }
 
@@ -926,6 +962,7 @@ export class App {
     this.el.connect.classList.toggle('connected', deviceName !== null);
 
     const btn = this.el.transport;
+    this.el.sidebar.setAttribute('aria-label', t('toolbar.sidebarTitle'));
     this.el.transportTitle.textContent = this.stopping ? t('toolbar.stopping')
       : this.running ? t('toolbar.stop') : t('toolbar.start');
     btn.classList.toggle('primary', !this.running);
@@ -1443,9 +1480,7 @@ export class App {
       this.renderPanels();
     },
     setPanel: (p: 'device' | 'analyzers' | null) => {
-      this.panel = p;
-      this.renderPanels();
-      this.relayout();
+      this.selectPanel(p);
     },
     setViewportSeconds: (a: number, b: number) => {
       const sr = this.store.samplerate;

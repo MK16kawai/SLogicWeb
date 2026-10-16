@@ -44,7 +44,10 @@ export type CloseReason = 'escape' | 'pick' | 'toggle' | 'outside' | 'resize' | 
 export class SettingsMenu {
   private menu: HTMLDivElement | null = null;
 
-  constructor(private readonly anchor: HTMLButtonElement) {}
+  constructor(
+    private readonly anchor: HTMLButtonElement,
+    private readonly menuId: string = 'settings-menu',
+  ) {}
 
   toggle(items: readonly SettingsMenuItem[]): void {
     if (this.menu) this.close('toggle');
@@ -55,7 +58,7 @@ export class SettingsMenu {
     if (this.menu) this.close('toggle'); // re-open while open rebuilds, never stacks
     const menu = document.createElement('div');
     menu.className = 'settings-menu';
-    menu.id = 'settings-menu';
+    menu.id = this.menuId;
     for (const item of items) menu.appendChild(this.buildRow(item));
     document.body.appendChild(menu);
 

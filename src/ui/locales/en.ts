@@ -37,6 +37,10 @@ export const en = {
   'toolbar.openTitle': 'Load a sigrok .sr session or a .lwcap',
   'toolbar.saveTitle': 'Save this capture as .lwcap',
   'toolbar.fitTitle': 'Zoom to the whole capture',
+  'toolbar.sidebarTitle': 'Choose right sidebar',
+  'toolbar.sidebarDevice': 'Device and capture settings',
+  'toolbar.sidebarAnalyzers': 'Protocol analyzers',
+  'toolbar.sidebarNone': 'No sidebar',
 
   // ---------------------------------------------------- capture title
   'capture.none': 'no capture',

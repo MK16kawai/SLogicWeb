@@ -230,7 +230,7 @@ function check(name: string, pass: boolean, detail: string): void {
   ];
   const expectedTitles = [
     'toolbar.startTitle', 'toolbar.openTitle', 'toolbar.saveTitle', 'toolbar.fitTitle',
-    'rail.deviceTitle', 'rail.analyzersTitle', 'settings.titleHint',
+    'toolbar.sidebarTitle', 'rail.deviceTitle', 'rail.analyzersTitle', 'settings.titleHint',
   ];
 
   const missingTextKeys = expectedText.filter((k) => !textFound.has(k));
@@ -258,6 +258,12 @@ function check(name: string, pass: boolean, detail: string): void {
     titleDrift.length === 0,
     titleDrift.length === 0 ? 'all match' :
       titleDrift.map(([k, title]) => `${k}: html=${JSON.stringify(title)} en=${JSON.stringify(catalog[k])}`).join('; '));
+
+  const sidebarButton = /<button[^>]*\bid="btn-sidebar"[^>]*>/.exec(html)?.[0] ?? '';
+  const ariaLabel = /\saria-label="([^"]*)"/.exec(sidebarButton)?.[1];
+  check('sidebar selector aria-label fallback equals the English catalog value',
+    ariaLabel !== undefined && ariaLabel === catalog['toolbar.sidebarTitle'],
+    `aria-label=${JSON.stringify(ariaLabel)} en=${JSON.stringify(catalog['toolbar.sidebarTitle'])}`);
 }
 
 // ------------------------------------------- Vite chunk warning configuration
@@ -386,6 +392,7 @@ const baseSettings: CaptureSettings = {
     'toolbar.start', 'settings.language', 'settings.theme', 'trigger.anyEdge',
     'channels.settings', 'channels.name', 'channels.color', 'channels.customColor',
     'channels.triggerMode', 'channels.cancel',
+    'toolbar.sidebarTitle', 'toolbar.sidebarDevice', 'toolbar.sidebarAnalyzers', 'toolbar.sidebarNone',
   ];
   const dicts: Record<string, Messages | undefined> = { 'zh-CN': zhCN, ru, fr };
   const bad: string[] = [];
