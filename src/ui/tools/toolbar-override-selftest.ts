@@ -11,6 +11,10 @@ import {
   type ToolbarOverride,
 } from '../toolbarOverride.js';
 
+interface FsLike {
+  readFileSync(path: string, encoding: 'utf8'): string;
+}
+
 interface TestResult {
   name: string;
   pass: boolean;
@@ -19,11 +23,14 @@ interface TestResult {
 
 const nodeProcess = (() => {
   const p = (globalThis as {
-    process?: { exit(code: number): never };
+    process?: { exit(code: number): never; getBuiltinModule?(name: string): unknown };
   }).process;
   if (!p || typeof p.exit !== 'function') throw new Error('this entry point only runs under node');
   return p;
 })();
+
+const fs = nodeProcess.getBuiltinModule?.('fs') as FsLike | undefined;
+if (!fs || typeof fs.readFileSync !== 'function') throw new Error('node fs module unavailable');
 
 const results: TestResult[] = [];
 
@@ -475,6 +482,42 @@ let storageListener: ((event: StorageEvent) => void) | null = null;
     named(allNullOps) && named(mixedOps) && named(mixedTwoOps);
   check('apply is a pure reflection: three properties, set when non-null, remove when null', pass,
     `allNull=${formatOps(allNullOps)}, mixed=${formatOps(mixedOps)}, mixedTwo=${formatOps(mixedTwoOps)}`);
+}
+
+{
+  const css = fs.readFileSync('src/ui/style.css', 'utf8');
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const toolbarStart = code.indexOf('#toolbar {');
+  const mainStart = code.indexOf('#main {');
+  const toolbar = toolbarStart >= 0 && mainStart > toolbarStart ? code.slice(toolbarStart, mainStart) : '';
+  const needles = [
+    'min-height: max(var(--toolbar-min-height, var(--toolbar-h)), var(--toolbar-min-ratio, 0px));',
+    'height: var(--toolbar-height, auto);',
+  ];
+  const missing = needles.filter((needle) => !toolbar.includes(needle));
+  const factory = code.includes('--toolbar-h: 57px;');
+  check('style.css composes the override in the two #toolbar declarations above #main',
+    missing.length === 0 && factory,
+    `missing=${JSON.stringify(missing)}, factoryToolbarH=${factory}, slice=${toolbar.length}`);
+}
+
+{
+  const main = fs.readFileSync('src/ui/main.ts', 'utf8');
+  const importNeedle = "import { initToolbarOverride } from './toolbarOverride.js';";
+  const callNeedle = 'initToolbarOverride();';
+  const hasImport = main.includes(importNeedle);
+  const hasCall = main.includes(callNeedle);
+  const discovery = /uictrl/i.test(main);
+  check('src/ui/main.ts imports and boots the override module and mentions no console',
+    hasImport && hasCall && !discovery,
+    `import=${hasImport}, call=${hasCall}, discovery=${discovery}`);
+}
+
+{
+  const html = fs.readFileSync('index.html', 'utf8');
+  const discovery = /uictrl/i.test(html);
+  check('root index.html keeps no console discovery reference', !discovery,
+    `discovery=${discovery}`);
 }
 
 console.log(results.map((r) => `${r.pass ? 'PASS' : 'FAIL'}  ${r.name}\n        ${r.detail}`).join('\n'));
