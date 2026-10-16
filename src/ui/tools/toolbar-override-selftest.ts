@@ -92,6 +92,12 @@ function isAllNull(o: ToolbarOverride): boolean {
   return o.height === null && o.minHeight === null && o.minRatio === null;
 }
 
+function storageEvent(key: string | null): StorageEvent {
+  return { key } as unknown as StorageEvent;
+}
+
+let storageListener: ((event: StorageEvent) => void) | null = null;
+
 {
   const limits = TOOLBAR_OVERRIDE_LIMITS;
   const keys = Object.keys(limits).sort().join(',');
@@ -308,8 +314,12 @@ function isAllNull(o: ToolbarOverride): boolean {
   const log: StyleOp[] = [];
   installDom(log);
   const windowCalls: string[] = [];
+  const windowListeners = new Map<string, (event: StorageEvent) => void>();
   defineGlobal('window', {
-    addEventListener: (type: string) => { windowCalls.push(type); },
+    addEventListener: (type: string, listener: (event: StorageEvent) => void) => {
+      windowCalls.push(type);
+      windowListeners.set(type, listener);
+    },
   });
   defineGlobal('localStorage', {
     getItem: () => { throw new Error('storage denied'); },
@@ -339,9 +349,98 @@ function isAllNull(o: ToolbarOverride): boolean {
   const pass = !bootThrew && booted !== null && isAllNull(booted) && !switchThrew &&
     afterSwitch.height === 70 && afterSwitch.minHeight === null && afterSwitch.minRatio === 12 &&
     notified === 1 && windowCalls.join(',') === 'storage';
+  storageListener = windowListeners.get('storage') ?? null;
   check('throwing storage never breaks boot or the switch, and memory still changes', pass,
     `bootThrew=${bootThrew}, booted=${JSON.stringify(booted)}, switchThrew=${switchThrew}, ` +
     `state=${JSON.stringify(afterSwitch)}, notified=${notified}, window=${windowCalls.join(',')}`);
+}
+
+{
+  const log: StyleOp[] = [];
+  const storage = makeStorage();
+  storage.data.set(TOOLBAR_OVERRIDE_STORAGE_KEY, '{"height":72,"minHeight":90,"minRatio":7}');
+  defineGlobal('localStorage', storage.api);
+  installDom(log);
+
+  const restored = initToolbarOverride();
+  const afterBoot = getToolbarOverride();
+  const bootOps = formatOps(log);
+
+  let notified = 0;
+  const unsubscribe = onToolbarOverrideChange(() => { notified += 1; });
+
+  storage.data.set(TOOLBAR_OVERRIDE_STORAGE_KEY, '{"height":100,"minRatio":20}');
+  log.length = 0;
+  notified = 0;
+  storageListener?.(storageEvent(TOOLBAR_OVERRIDE_STORAGE_KEY));
+  const afterKeyEvent = getToolbarOverride();
+  const keyOps = formatOps(log);
+  const keyNotified = notified;
+
+  storage.data.delete(TOOLBAR_OVERRIDE_STORAGE_KEY);
+  log.length = 0;
+  notified = 0;
+  storageListener?.(storageEvent(null));
+  const afterNullKeyEvent = getToolbarOverride();
+  const nullKeyOps = formatOps(log);
+  const nullKeyNotified = notified;
+
+  setToolbarOverride({ height: 50, minHeight: null, minRatio: 5 });
+  storage.data.set(TOOLBAR_OVERRIDE_STORAGE_KEY, '{"height":200,"minHeight":10,"minRatio":30}');
+  log.length = 0;
+  notified = 0;
+  storageListener?.(storageEvent('logicweb.theme'));
+  const afterUnrelatedEvent = getToolbarOverride();
+  const unrelatedOps = formatOps(log);
+  const unrelatedNotified = notified;
+
+  storage.data.set(TOOLBAR_OVERRIDE_STORAGE_KEY, '{"height":50,"minRatio":5}');
+  log.length = 0;
+  notified = 0;
+  storageListener?.(storageEvent(TOOLBAR_OVERRIDE_STORAGE_KEY));
+  const afterEqualEvent = getToolbarOverride();
+  const equalOps = formatOps(log);
+  const equalNotified = notified;
+
+  const reInitCalls: string[] = [];
+  defineGlobal('window', {
+    addEventListener: (type: string) => { reInitCalls.push(type); },
+  });
+  const reInit = initToolbarOverride();
+  unsubscribe();
+
+  const bootPass = restored.height === 72 && restored.minHeight === 90 && restored.minRatio === 7 &&
+    afterBoot.height === 72 && afterBoot.minHeight === 90 && afterBoot.minRatio === 7 &&
+    bootOps === 'set:--toolbar-height=72px,set:--toolbar-min-height=90px,set:--toolbar-min-ratio=7vh';
+  check('a valid stored override is restored and applied on boot in px/px/vh', bootPass,
+    `restored=${JSON.stringify(restored)}, state=${JSON.stringify(afterBoot)}, ops=${bootOps}`);
+
+  const keyPass = afterKeyEvent.height === 100 && afterKeyEvent.minHeight === null &&
+    afterKeyEvent.minRatio === 20 && keyNotified === 1 &&
+    keyOps === 'set:--toolbar-height=100px,remove:--toolbar-min-height,set:--toolbar-min-ratio=20vh';
+  check('a matching storage event applies the externally stored override and notifies once', keyPass,
+    `state=${JSON.stringify(afterKeyEvent)}, notified=${keyNotified}, ops=${keyOps}`);
+
+  const nullKeyPass = isAllNull(afterNullKeyEvent) && nullKeyNotified === 1 &&
+    nullKeyOps === 'remove:--toolbar-height,remove:--toolbar-min-height,remove:--toolbar-min-ratio';
+  check('a null-key storage event (storage.clear()) strips the override and notifies once', nullKeyPass,
+    `state=${JSON.stringify(afterNullKeyEvent)}, notified=${nullKeyNotified}, ops=${nullKeyOps}`);
+
+  const unrelatedPass = afterUnrelatedEvent.height === 50 && afterUnrelatedEvent.minHeight === null &&
+    afterUnrelatedEvent.minRatio === 5 && unrelatedNotified === 0 && unrelatedOps === '';
+  check('an unrelated storage key is a total no-op (no apply, no notify)', unrelatedPass,
+    `state=${JSON.stringify(afterUnrelatedEvent)}, notified=${unrelatedNotified}, ops=${unrelatedOps}`);
+
+  const equalPass = afterEqualEvent.height === 50 && afterEqualEvent.minHeight === null &&
+    afterEqualEvent.minRatio === 5 && equalNotified === 0 && equalOps === '';
+  check('a matching storage event whose value already matches state is a total no-op', equalPass,
+    `state=${JSON.stringify(afterEqualEvent)}, notified=${equalNotified}, ops=${equalOps}`);
+
+  const guardPass = storageListener !== null && reInitCalls.length === 0 &&
+    reInit.height === 50 && reInit.minHeight === null && reInit.minRatio === 5;
+  check('re-initializing does not register a second storage listener', guardPass,
+    `captured=${storageListener !== null}, reInitCalls=${reInitCalls.join(',')}, ` +
+    `state=${JSON.stringify(reInit)}`);
 }
 
 {
