@@ -183,6 +183,21 @@ check(
   `missing=${JSON.stringify(missingPresentation)}`,
 );
 
+const intrinsicDesktop = css.includes('#toolbar button.toolbar-item {\n  flex: 0 0 auto;\n  width: fit-content;');
+const intrinsicMobile = css.includes('#toolbar button.toolbar-item { min-height: 38px; max-width: 100%; padding: 4px 8px; }');
+const fixedSizingNeedles = [
+  'flex: 0 1 240px',
+  'min-width: 180px',
+  'flex: 1 1 96px',
+  'flex: 1 1 100%',
+];
+const fixedSizing = fixedSizingNeedles.filter((needle) => css.includes(needle));
+check(
+  'toolbar buttons retire fixed desktop bases and equal or full-row mobile sizing',
+  intrinsicDesktop && intrinsicMobile && fixedSizing.length === 0,
+  `desktop=${intrinsicDesktop}, mobile=${intrinsicMobile}, fixed=${JSON.stringify(fixedSizing)}`,
+);
+
 console.log(results.map((result) => (
   `${result.pass ? 'PASS' : 'FAIL'}  ${result.name}\n        ${result.detail}`
 )).join('\n'));
