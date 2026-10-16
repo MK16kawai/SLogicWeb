@@ -155,7 +155,8 @@ html, body {
 
 #toolbar {
   min-width: 0;
-  min-height: var(--toolbar-h);
+  min-height: max(var(--toolbar-min-height, var(--toolbar-h)), var(--toolbar-min-ratio, 0px));
+  height: var(--toolbar-height, auto);
   background: var(--background);
   border-bottom: 1px solid var(--border);
   color: var(--foreground);

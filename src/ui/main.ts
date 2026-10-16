@@ -8,6 +8,7 @@
 import { App } from './app.js';
 import { initLocale } from './i18n.js';
 import { initTheme } from './theme.js';
+import { initToolbarOverride } from './toolbarOverride.js';
 // Side effect: hands `workerTransport` the browser's USB worker constructor. Imported
 // here, not from `device/index.ts`, so the device layer stays bundlable without Vite.
 import '../device/usbWorkerSpawn.js';
@@ -26,6 +27,7 @@ declare global {
 async function boot(): Promise<void> {
   try {
     initTheme();
+    initToolbarOverride();
     await initLocale();
     window.logicweb = new App();
   } catch (e) {
