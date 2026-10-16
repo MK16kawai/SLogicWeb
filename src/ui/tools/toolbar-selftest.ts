@@ -198,6 +198,13 @@ check(
   `desktop=${intrinsicDesktop}, mobile=${intrinsicMobile}, fixed=${JSON.stringify(fixedSizing)}`,
 );
 
+const unboundedMobile = css.includes('#toolbar button.toolbar-item { min-height: 38px; max-width: 100%; padding: 4px 8px; }');
+check(
+  'mobile toolbar preserves the content cap within narrower available widths',
+  intrinsicMobile && !unboundedMobile,
+  `bounded=${intrinsicMobile}, unbounded=${unboundedMobile}`,
+);
+
 console.log(results.map((result) => (
   `${result.pass ? 'PASS' : 'FAIL'}  ${result.name}\n        ${result.detail}`
 )).join('\n'));
