@@ -113,7 +113,6 @@ const anatomyNeedles = [
   'class="toolbar-item-media"',
   'class="toolbar-item-content"',
   'toolbar-item-title',
-  'toolbar-item-description',
   'aria-hidden="true"',
   'focusable="false"',
   'data-icon="inline-start"',
@@ -142,9 +141,7 @@ const dynamicTargets = [
   "connectTitle: must<HTMLSpanElement>('device-title')",
   "connectDescription: must<HTMLSpanElement>('device-description')",
   "transportTitle: must<HTMLSpanElement>('transport-title')",
-  "transportDescription: must<HTMLSpanElement>('transport-description')",
   'this.el.transportTitle.textContent =',
-  'this.el.transportDescription.textContent = btn.title',
 ];
 const missingDynamicTargets = dynamicTargets.filter((needle) => !app.includes(needle));
 const preservedClasses = app.includes("btn.classList.toggle('primary', !this.running)") &&
@@ -172,7 +169,6 @@ const presentationNeedles = [
   'max-width: 240px',
   'display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
   '#toolbar button.toolbar-device { min-height: 44px; }',
-  '#toolbar button.toolbar-item:not(.toolbar-device) .toolbar-item-description { display: none; }',
   '#toolbar .toolbar-session,',
   '#toolbar .spacer { display: none; }',
 ];

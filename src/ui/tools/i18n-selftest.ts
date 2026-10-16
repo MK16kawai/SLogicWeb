@@ -225,10 +225,8 @@ function check(name: string, pass: boolean, detail: string): void {
   }
 
   const expectedText = [
-    'toolbar.start', 'toolbar.startTitle', 'toolbar.open', 'toolbar.openTitle',
-    'toolbar.save', 'toolbar.saveTitle', 'toolbar.fit', 'toolbar.fitTitle',
-    'capturePanel.capture', 'emptyHint.line1', 'emptyHint.line2',
-    'settings.title', 'settings.titleHint',
+    'toolbar.start', 'toolbar.open', 'toolbar.save', 'toolbar.fit',
+    'capturePanel.capture', 'emptyHint.line1', 'emptyHint.line2', 'settings.title',
   ];
   const expectedTitles = [
     'toolbar.startTitle', 'toolbar.openTitle', 'toolbar.saveTitle', 'toolbar.fitTitle',

@@ -126,7 +126,7 @@ export class App {
     channelList: HTMLDivElement; side: HTMLDivElement; status: HTMLDivElement;
     hint: HTMLDivElement; transport: HTMLButtonElement; title: HTMLSpanElement;
     connect: HTMLButtonElement; connectTitle: HTMLSpanElement; connectDescription: HTMLSpanElement;
-    transportTitle: HTMLSpanElement; transportDescription: HTMLSpanElement;
+    transportTitle: HTMLSpanElement;
     fileInput: HTMLInputElement;
   };
 
@@ -145,7 +145,6 @@ export class App {
       connectTitle: must<HTMLSpanElement>('device-title'),
       connectDescription: must<HTMLSpanElement>('device-description'),
       transportTitle: must<HTMLSpanElement>('transport-title'),
-      transportDescription: must<HTMLSpanElement>('transport-description'),
       title: must<HTMLSpanElement>('capture-title'),
       fileInput: must<HTMLInputElement>('file-input'),
     };
@@ -937,7 +936,6 @@ export class App {
       ? this.stopping ? t('toolbar.stoppingTitle')
         : t('toolbar.connectFirstTitle')
       : this.running ? t('toolbar.stopTitle') : t('toolbar.startTitle');
-    this.el.transportDescription.textContent = btn.title;
     this.el.title.textContent = formatCaptureLabel(this.captureLabel);
   }
 
