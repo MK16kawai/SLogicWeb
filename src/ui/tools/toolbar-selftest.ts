@@ -167,9 +167,11 @@ check(
 const presentationNeedles = [
   '#toolbar button.toolbar-item:focus-visible',
   '#toolbar .toolbar-device.connected .toolbar-item-media { color: var(--primary); }',
+  'flex: 0 0 auto;',
+  'width: fit-content;',
   'max-width: 240px',
   'display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
-  '#toolbar button.toolbar-device { flex: 1 1 100%; min-width: 0; min-height: 44px; }',
+  '#toolbar button.toolbar-device { min-height: 44px; }',
   '#toolbar button.toolbar-item:not(.toolbar-device) .toolbar-item-description { display: none; }',
   '#toolbar .toolbar-session,',
   '#toolbar .spacer { display: none; }',

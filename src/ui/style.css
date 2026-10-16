@@ -197,7 +197,8 @@ button:active { box-shadow: inset 0 0 0 999px rgb(0 0 0 / 25%); }
 
 #toolbar .toolbar-item { display: flex; align-items: center; gap: 8px; min-width: 0; text-align: left; }
 #toolbar button.toolbar-item {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  width: fit-content;
   min-width: 0;
   max-width: 240px;
   min-height: 44px;
@@ -221,7 +222,6 @@ button:active { box-shadow: inset 0 0 0 999px rgb(0 0 0 / 25%); }
 #toolbar button.toolbar-item.primary:not(:disabled):hover,
 #toolbar button.toolbar-item.danger:not(:disabled):hover { opacity: 0.9; }
 #toolbar button.toolbar-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-#toolbar button.toolbar-device { flex: 0 1 240px; min-width: 180px; }
 #toolbar .toolbar-item-media {
   display: flex; align-items: center; justify-content: center; flex: none;
   width: 28px; height: 28px; border-radius: var(--radius);
@@ -254,8 +254,8 @@ button:active { box-shadow: inset 0 0 0 999px rgb(0 0 0 / 25%); }
 
 @media (max-width: 760px) {
   #toolbar { gap: 4px; padding: 6px; }
-  #toolbar button.toolbar-item { flex: 1 1 96px; min-height: 38px; max-width: none; padding: 4px 8px; }
-  #toolbar button.toolbar-device { flex: 1 1 100%; min-width: 0; min-height: 44px; }
+  #toolbar button.toolbar-item { min-height: 38px; max-width: 100%; padding: 4px 8px; }
+  #toolbar button.toolbar-device { min-height: 44px; }
   #toolbar button.toolbar-item:not(.toolbar-device) .toolbar-item-description { display: none; }
   #toolbar .toolbar-session,
   #toolbar .toolbar-separator,
