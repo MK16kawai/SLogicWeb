@@ -155,13 +155,15 @@ check(
   `direct=${JSON.stringify(directButtonTranslations)}, missing=${JSON.stringify(missingDynamicTargets)}, retired=${JSON.stringify(retiredTransportDescription)}, classes=${preservedClasses}`,
 );
 
-const sessionSummary = toolbar.includes('<span class="toolbar-item toolbar-session">') &&
-  toolbar.includes('id="capture-title" class="toolbar-item-description"') &&
-  toolbar.includes('data-i18n="capturePanel.capture"');
+const toolbarSummaryAbsent = !toolbar.includes('toolbar-session') &&
+  !html.includes('capture-title') &&
+  !css.includes('toolbar-session');
+const titleLookupAbsent = !app.includes("'capture-title'") && !app.includes('this.el.title');
+const statusOwnsCaptureLabel = app.includes('parts.push(formatCaptureLabel(this.captureLabel))');
 check(
-  'capture summary shares item anatomy without becoming a command',
-  sessionSummary,
-  `sessionSummary=${sessionSummary}`,
+  'the toolbar carries no capture summary and the status bar is the sole description site',
+  toolbarSummaryAbsent && titleLookupAbsent && statusOwnsCaptureLabel,
+  `toolbarAbsent=${toolbarSummaryAbsent}, appAbsent=${titleLookupAbsent}, status=${statusOwnsCaptureLabel}`,
 );
 
 const descriptionCounts = commandIds.map((id) => (
@@ -169,9 +171,9 @@ const descriptionCounts = commandIds.map((id) => (
 ));
 const expectedDescriptionCounts = [1, 0, 0, 0, 0, 0];
 check(
-  'only the device command and non-button capture summary retain descriptions',
-  JSON.stringify(descriptionCounts) === JSON.stringify(expectedDescriptionCounts) && sessionSummary,
-  `commands=${JSON.stringify(Object.fromEntries(commandIds.map((id, index) => [id, descriptionCounts[index]])))}, capture=${sessionSummary}`,
+  'only the device command retains a toolbar description',
+  JSON.stringify(descriptionCounts) === JSON.stringify(expectedDescriptionCounts),
+  `commands=${JSON.stringify(Object.fromEntries(commandIds.map((id, index) => [id, descriptionCounts[index]])))}`,
 );
 
 const retiredDescriptionStyles = [
@@ -193,7 +195,6 @@ const presentationNeedles = [
   'max-width: 240px',
   'display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
   '#toolbar button.toolbar-device { min-height: 44px; }',
-  '#toolbar .toolbar-session,',
   '#toolbar .spacer { display: none; }',
 ];
 const missingPresentation = presentationNeedles.filter((needle) => !css.includes(needle));

@@ -124,7 +124,7 @@ export class App {
     plot: HTMLDivElement; waveStack: HTMLDivElement; axis: HTMLCanvasElement;
     scroll: HTMLDivElement;
     channelList: HTMLDivElement; side: HTMLDivElement; status: HTMLDivElement;
-    hint: HTMLDivElement; transport: HTMLButtonElement; title: HTMLSpanElement;
+    hint: HTMLDivElement; transport: HTMLButtonElement;
     connect: HTMLButtonElement; connectTitle: HTMLSpanElement; connectDescription: HTMLSpanElement;
     transportTitle: HTMLSpanElement;
     fileInput: HTMLInputElement;
@@ -145,7 +145,6 @@ export class App {
       connectTitle: must<HTMLSpanElement>('device-title'),
       connectDescription: must<HTMLSpanElement>('device-description'),
       transportTitle: must<HTMLSpanElement>('transport-title'),
-      title: must<HTMLSpanElement>('capture-title'),
       fileInput: must<HTMLInputElement>('file-input'),
     };
 
@@ -936,7 +935,6 @@ export class App {
       ? this.stopping ? t('toolbar.stoppingTitle')
         : t('toolbar.connectFirstTitle')
       : this.running ? t('toolbar.stopTitle') : t('toolbar.startTitle');
-    this.el.title.textContent = formatCaptureLabel(this.captureLabel);
   }
 
   private renderStatus(): void {

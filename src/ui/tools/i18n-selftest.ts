@@ -226,7 +226,7 @@ function check(name: string, pass: boolean, detail: string): void {
 
   const expectedText = [
     'toolbar.start', 'toolbar.open', 'toolbar.save', 'toolbar.fit',
-    'capturePanel.capture', 'emptyHint.line1', 'emptyHint.line2', 'settings.title',
+    'emptyHint.line1', 'emptyHint.line2', 'settings.title',
   ];
   const expectedTitles = [
     'toolbar.startTitle', 'toolbar.openTitle', 'toolbar.saveTitle', 'toolbar.fitTitle',
