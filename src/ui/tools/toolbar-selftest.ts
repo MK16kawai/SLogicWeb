@@ -136,6 +136,26 @@ check(
   `failures=${JSON.stringify(anatomyFailures)}, icons=${iconSignatures.size}, separators=${separatorCount}/${verticalSeparatorCount}`,
 );
 
+const fitIndex = toolbar.indexOf('id="btn-fit"');
+const spacerIndex = toolbar.indexOf('class="spacer"');
+const settingsIndex = toolbar.indexOf('id="btn-settings"');
+const settingsSeparatorIndex = settingsIndex >= 0
+  ? toolbar.lastIndexOf('role="separator"', settingsIndex)
+  : -1;
+const settingsBeforeSpacer = fitIndex >= 0 && settingsSeparatorIndex > fitIndex &&
+  settingsIndex > settingsSeparatorIndex && spacerIndex > settingsIndex;
+const earlierCommandIndexes = commandIds
+  .filter((id) => id !== 'btn-settings')
+  .map((id) => toolbar.indexOf(`id="${id}"`));
+const settingsIsLastLeftCommand = settingsIndex >= 0 &&
+  earlierCommandIndexes.every((index) => index >= 0 && index < settingsIndex) &&
+  spacerIndex > settingsIndex;
+check(
+  'settings is the last left-aligned toolbar command before the spacer',
+  settingsBeforeSpacer && settingsIsLastLeftCommand,
+  `fit@${fitIndex}, settingsSeparator@${settingsSeparatorIndex}, settings@${settingsIndex}, spacer@${spacerIndex}`,
+);
+
 const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
 const dynamicTargets = [
   "connectTitle: must<HTMLSpanElement>('device-title')",
