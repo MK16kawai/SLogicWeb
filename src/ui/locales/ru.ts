@@ -54,10 +54,6 @@ export const ru: Messages = {
   'emptyHint.line1': 'Захват не загружен.',
   'emptyHint.line2': 'Откройте файл .sr или .lwcap или подключите SLogic16/32 U3.',
 
-  // --------------------------------------------------------------- rail
-  'rail.deviceTitle': 'Устройство и настройки захвата',
-  'rail.analyzersTitle': 'Протокольные анализаторы',
-
   // ------------------------------------- error prefixes (App.fail sites)
   'error.render': 'отрисовка',
   'error.device': 'устройство',

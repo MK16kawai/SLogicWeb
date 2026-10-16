@@ -54,10 +54,6 @@ export const fr: Messages = {
   'emptyHint.line1': 'Aucune capture chargée.',
   'emptyHint.line2': 'Ouvrez un fichier .sr ou .lwcap, ou connectez un SLogic16/32 U3.',
 
-  // --------------------------------------------------------------- rail
-  'rail.deviceTitle': 'Appareil et réglages de capture',
-  'rail.analyzersTitle': 'Analyseurs de protocole',
-
   // ------------------------------------- error prefixes (App.fail sites)
   'error.render': 'rendu',
   'error.device': 'appareil',

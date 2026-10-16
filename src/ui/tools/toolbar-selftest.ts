@@ -250,29 +250,24 @@ const selectPanelShape = selectPanelBody.includes("this.sidebarMenu.close('outsi
   selectPanelBody.includes('this.panel = p;') &&
   selectPanelBody.includes('this.renderPanels();') &&
   selectPanelBody.includes('this.relayout();');
-const wireRailStart = app.indexOf('private wireRail(): void {');
-const renderPanelsStart = app.indexOf('private renderPanels(): void {');
-const wireRailBody = wireRailStart >= 0 && renderPanelsStart > wireRailStart
-  ? app.slice(wireRailStart, renderPanelsStart)
+const sidebarItemsStart = app.indexOf('private sidebarItems(');
+const sidebarItemsEnd = sidebarItemsStart >= 0 ? app.indexOf('\n  }', sidebarItemsStart) : -1;
+const sidebarItemsBody = sidebarItemsStart >= 0 && sidebarItemsEnd > sidebarItemsStart
+  ? app.slice(sidebarItemsStart, sidebarItemsEnd)
   : '';
 const setPanelStart = app.indexOf("setPanel: (p: 'device' | 'analyzers' | null) => {");
 const setPanelEnd = setPanelStart >= 0 ? app.indexOf('\n    },', setPanelStart) : -1;
 const setPanelBody = setPanelStart >= 0 && setPanelEnd > setPanelStart
   ? app.slice(setPanelStart, setPanelEnd)
   : '';
-const sharedPanelPath = wireRailBody.includes('this.selectPanel(') &&
-  setPanelBody.includes('this.selectPanel(');
+const sidebarDelegations = sidebarItemsBody.match(/this\.selectPanel\(/g)?.length ?? 0;
+const sharedPanelPath = sidebarDelegations === 3 && setPanelBody.includes('this.selectPanel(');
 check(
   'three checked direct choices drive the panel through one shared selection path',
   missingSidebarChoices.length === 0 && selectPanelShape && sharedPanelPath,
-  `missing=${JSON.stringify(missingSidebarChoices)}, shape=${selectPanelShape}, shared=${sharedPanelPath}`,
+  `missing=${JSON.stringify(missingSidebarChoices)}, shape=${selectPanelShape}, shared=${sharedPanelPath}, delegations=${sidebarDelegations}`,
 );
 
-const sidebarItemsStart = app.indexOf('private sidebarItems(');
-const sidebarItemsEnd = sidebarItemsStart >= 0 ? app.indexOf('\n  }', sidebarItemsStart) : -1;
-const sidebarItemsBody = sidebarItemsStart >= 0 && sidebarItemsEnd > sidebarItemsStart
-  ? app.slice(sidebarItemsStart, sidebarItemsEnd)
-  : '';
 const sidebarRowCount = sidebarItemsBody.match(/onPick:/g)?.length ?? 0;
 const sidebarLeavesOnly = sidebarRowCount === 3 &&
   !sidebarItemsBody.includes('children:') && !sidebarItemsBody.includes('hint:');
@@ -306,16 +301,17 @@ check(
   `settings=${settingsClosesSidebar}, sidebar=${sidebarClosesSettings}`,
 );
 
-const railDelegations = wireRailBody.match(/this\.selectPanel\(/g)?.length ?? 0;
-const railRetained = html.includes('id="rail"') &&
-  html.includes('id="rail-device"') && html.includes('id="rail-analyzers"') &&
-  wireRailBody.includes("must<HTMLButtonElement>('rail-device')") &&
-  wireRailBody.includes("must<HTMLButtonElement>('rail-analyzers')") &&
-  railDelegations === 2;
+const railMarkupAbsent = !html.includes('id="rail"') && !html.includes('rail-btn') &&
+  !html.includes('rail-device') && !html.includes('rail-analyzers') &&
+  !toolbar.includes('rail');
+const railWiringAbsent = !app.includes('wireRail') &&
+  !app.includes("'rail-device'") && !app.includes("'rail-analyzers'");
+const railStylesAbsent = !css.includes('#rail') && !css.includes('.rail-btn') &&
+  !css.includes('--rail-w');
 check(
-  'the additive phase keeps both rail buttons wired through the shared selection path',
-  railRetained,
-  `railMarkup=${html.includes('id="rail"')}, delegations=${railDelegations}`,
+  'the legacy rail markup, wiring, styles, and width metric are absent',
+  railMarkupAbsent && railWiringAbsent && railStylesAbsent,
+  `markup=${railMarkupAbsent}, wiring=${railWiringAbsent}, styles=${railStylesAbsent}`,
 );
 
 const directButtonTranslations = commandIds.filter((id) => /<button\b[^>]*\sdata-i18n\s*=/.test(commandMarkup(id)));
@@ -415,6 +411,29 @@ check(
   'the sidebar selector stays far-right at the mobile breakpoint where the spacer is hidden',
   mobileBlock.includes('#toolbar .spacer { display: none; }') && sidebarMobileAutoMargin,
   `mobileBlock=${mobileBlock.length}, autoMargin=${sidebarMobileAutoMargin}`,
+);
+
+function mediaBlockContaining(needle: string): string {
+  let from = 0;
+  for (;;) {
+    const start = css.indexOf('@media (max-width: 760px) {', from);
+    if (start < 0) return '';
+    const end = css.indexOf('\n}', start);
+    if (end < 0) return '';
+    const block = css.slice(start, end);
+    if (block.includes(needle)) return block;
+    from = end + 1;
+  }
+}
+const sidePanelMobileBlock = mediaBlockContaining('#side-panel');
+const sidePanelMobileFlushRight = sidePanelMobileBlock.includes('right: 0;');
+const sidePanelMobileFullWidth = sidePanelMobileBlock.includes('width: min(var(--panel-w), 100%);');
+const sidePanelMobileNoRailGutter = sidePanelMobileBlock.length > 0 &&
+  !sidePanelMobileBlock.includes('--rail-w') && !sidePanelMobileBlock.includes('calc(100%');
+check(
+  'the mobile side panel is flush to the right edge with no rail gutter',
+  sidePanelMobileFlushRight && sidePanelMobileFullWidth && sidePanelMobileNoRailGutter,
+  `rightFlush=${sidePanelMobileFlushRight}, fullWidth=${sidePanelMobileFullWidth}, noGutter=${sidePanelMobileNoRailGutter}`,
 );
 
 const intrinsicDesktop = css.includes('#toolbar button.toolbar-item {\n  flex: 0 0 auto;\n  width: fit-content;');

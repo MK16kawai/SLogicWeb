@@ -263,7 +263,7 @@ function defineGlobal(name: 'localStorage' | 'document', value: unknown): void {
   // (b) The chrome metric freeze: theme blocks recolour, they never resize. Naive brace
   // matching is adequate here - this sheet has no CSS nesting, and dark rules are
   // top-level blocks. Vacuously true until the token layer lands (no dark block yet).
-  const METRIC_VARS = ['--toolbar-h', '--axis-h', '--status-h', '--labels-w', '--rail-w', '--strip-w', '--panel-w'];
+  const METRIC_VARS = ['--toolbar-h', '--axis-h', '--status-h', '--labels-w', '--strip-w', '--panel-w'];
   const offenders: string[] = [];
   let darkBlocks = 0;
   let from = 0;

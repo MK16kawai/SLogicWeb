@@ -142,6 +142,13 @@ function check(name: string, pass: boolean, detail: string): void {
 }
 
 {
+  const railKeys = Object.keys(en).filter((k) => k.startsWith('rail.'));
+  check('the retired rail catalog keys are removed from the English catalog',
+    railKeys.length === 0,
+    railKeys.length === 0 ? 'no rail.* keys' : railKeys.join(', '));
+}
+
+{
   const empty = Object.entries(en).filter(([, v]) => v.trim() === '').map(([k]) => k);
   check('no empty message values',
     empty.length === 0, empty.length === 0 ? 'all values non-empty' : empty.join(', '));
@@ -230,7 +237,7 @@ function check(name: string, pass: boolean, detail: string): void {
   ];
   const expectedTitles = [
     'toolbar.startTitle', 'toolbar.openTitle', 'toolbar.saveTitle', 'toolbar.fitTitle',
-    'toolbar.sidebarTitle', 'rail.deviceTitle', 'rail.analyzersTitle', 'settings.titleHint',
+    'toolbar.sidebarTitle', 'settings.titleHint',
   ];
 
   const missingTextKeys = expectedText.filter((k) => !textFound.has(k));

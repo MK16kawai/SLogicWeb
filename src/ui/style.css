@@ -37,7 +37,6 @@
   /* [CHOICE] the D-tag, the (optional) read-only name and the settings button; default
      channel names are empty now, so the column no longer reserves "Channel 15" width. */
   --labels-w: 128px;
-  --rail-w: 47px;      /* border device x 3106..3107, content 3108..3199 */
   --strip-w: 5px;      /* device x 0..9 */
   --panel-w: 296px;
 }
@@ -80,7 +79,7 @@
 
 /* Layer C: the dark theme. Token values [SOURCE] shadcn/ui dark (oklch), except where
    tagged. Chrome metric variables (--toolbar-h, --axis-h, --status-h, --labels-w,
-   --rail-w, --strip-w, --panel-w) are theme-independent and NEVER redefined here -
+   --strip-w, --panel-w) are theme-independent and NEVER redefined here -
    src/ui/tools/theme-selftest.ts enforces the freeze. */
 html[data-theme="dark"] {
   color-scheme: dark;        /* native select/checkbox/scrollbar render dark */
@@ -112,7 +111,7 @@ html[data-theme="dark"] {
      [MEASURED] EXCEPTION --bg10 stays the canvas tone #1B1B1C: the axis canvas paints
      metrics.ts COLORS.bg10 and the labels column / labels spacer / plot CSS must meet
      the canvas pixel-perfectly (the measured seam documented in this sheet's header).
-     Toolbar, side panel, rail and status get explicit semantic overrides instead. */
+     Toolbar, side panel and status get explicit semantic overrides instead. */
   --bg00: oklch(0.12 0 0);
   --bg10: #1B1B1C;
   --bg20: var(--card);
@@ -703,7 +702,7 @@ html[data-theme="dark"] .channel-color-palette { box-shadow: 0 8px 24px var(--sh
   color: var(--text50); pointer-events: none; text-align: center; line-height: 1.6;
 }
 
-/* ---------------------------------------------------------------- side panel + rail */
+/* ---------------------------------------------------------------- side panel */
 
 #side-panel {
   width: var(--panel-w);
@@ -722,41 +721,13 @@ html[data-theme="dark"] .channel-color-palette { box-shadow: 0 8px 24px var(--sh
     position: absolute;
     top: 0;
     bottom: 0;
-    right: var(--rail-w);
+    right: 0;
     z-index: 20;
-    width: min(var(--panel-w), calc(100% - var(--rail-w)));
+    width: min(var(--panel-w), 100%);
     min-width: 0;
     box-shadow: -6px 0 24px rgb(0 0 0 / 45%);
   }
 }
-
-#rail {
-  width: var(--rail-w);
-  min-width: var(--rail-w);
-  background: var(--panel);
-  border-left: 1px solid var(--border-high);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 8px;
-  gap: 4px;
-}
-.rail-btn {
-  width: 34px; height: 34px;
-  background: none; border: none; border-radius: 4px;
-  color: var(--text50); cursor: pointer; font-size: 15px;
-}
-.rail-btn:hover { background: #4a4a4f; color: var(--text80); }
-.rail-btn.on { background: var(--bg20); color: var(--text); }
-
-/* Dark theme: the rail drops to the shell ground. Its default active surface (--bg20)
-   would equal the card tone and vanish, so .on moves to --secondary. */
-html[data-theme="dark"] #rail { background: var(--background); border-left-color: var(--border); }
-html[data-theme="dark"] .rail-btn {
-  color: var(--muted-foreground); border-radius: calc(var(--radius) - 4px);
-}
-html[data-theme="dark"] .rail-btn:hover { background: var(--muted); color: var(--foreground); }
-html[data-theme="dark"] .rail-btn.on { background: var(--secondary); color: var(--foreground); }
 
 .panel-head { padding: 12px 12px 10px; border-bottom: 1px solid var(--border-low); }
 .panel-title { font-size: 15px; color: var(--text); margin-bottom: 4px; }

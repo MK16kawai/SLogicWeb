@@ -58,10 +58,6 @@ export const en = {
   'emptyHint.line1': 'No capture loaded.',
   'emptyHint.line2': 'Open a .sr or .lwcap file, or connect an SLogic16/32 U3.',
 
-  // --------------------------------------------------------------- rail
-  'rail.deviceTitle': 'Device and capture settings',
-  'rail.analyzersTitle': 'Protocol analyzers',
-
   // ------------------------------------- error prefixes (App.fail sites)
   'error.render': 'render',
   'error.device': 'device',

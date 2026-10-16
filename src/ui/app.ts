@@ -150,7 +150,7 @@ export class App {
       fileInput: must<HTMLInputElement>('file-input'),
     };
 
-    // Static chrome (toolbar buttons, empty hint, rail tooltips) translates in place,
+    // Static chrome (toolbar buttons, empty hint) translates in place,
     // and <html lang> follows the stored locale - both before the first paint.
     document.documentElement.lang = getLocale();
     applyStaticI18n(document);
@@ -197,7 +197,6 @@ export class App {
 
     this.wireToolbar();
     this.wirePlot();
-    this.wireRail();
 
     // A locale switch is a full re-render pass: every render path is clear-and-rebuild,
     // so re-running them swaps the language with no stale strings anywhere.
@@ -789,7 +788,7 @@ export class App {
     this.stack.setFollowLatest(on);
   }
 
-  // ------------------------------------------------------------------ toolbar / rail
+  // ------------------------------------------------------------------ toolbar
 
   private wireToolbar(): void {
     this.el.connect.addEventListener('click', () => void this.connect());
@@ -884,22 +883,7 @@ export class App {
     this.renderStatus();   // status line
   }
 
-  private wireRail(): void {
-    const dev = must<HTMLButtonElement>('rail-device');
-    const ana = must<HTMLButtonElement>('rail-analyzers');
-    dev.addEventListener('click', () => {
-      this.selectPanel(this.panel === 'device' ? null : 'device');
-    });
-    ana.addEventListener('click', () => {
-      this.selectPanel(this.panel === 'analyzers' ? null : 'analyzers');
-    });
-  }
-
   private renderPanels(): void {
-    const dev = must<HTMLButtonElement>('rail-device');
-    const ana = must<HTMLButtonElement>('rail-analyzers');
-    dev.classList.toggle('on', this.panel === 'device');
-    ana.classList.toggle('on', this.panel === 'analyzers');
     this.el.side.classList.toggle('hidden', this.panel === null);
 
     // Toolbar chrome is updated before the early return below, not after it. It used to be

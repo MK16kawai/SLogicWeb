@@ -52,10 +52,6 @@ export const zhCN: Messages = {
   'emptyHint.line1': '尚未加载采集数据。',
   'emptyHint.line2': '打开 .sr 或 .lwcap 文件，或连接 SLogic16/32 U3。',
 
-  // --------------------------------------------------------------- rail
-  'rail.deviceTitle': '设备与采集设置',
-  'rail.analyzersTitle': '协议分析器',
-
   // ------------------------------------- error prefixes (App.fail sites)
   'error.render': '渲染',
   'error.device': '设备',

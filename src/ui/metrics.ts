@@ -90,8 +90,6 @@ export const CHROME = {
   labelColWidth: 170,
   /** device x 0..9, filled with the channel colour */
   colorStripWidth: 5,
-  /** device x 3106..3199 including its 2 device px left border */
-  railWidth: 47,
   /** every border between two panels is 2 device px */
   borderWidth: 1,
 } as const;
