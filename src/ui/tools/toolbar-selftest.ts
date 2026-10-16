@@ -159,11 +159,29 @@ const toolbarSummaryAbsent = !toolbar.includes('toolbar-session') &&
   !html.includes('capture-title') &&
   !css.includes('toolbar-session');
 const titleLookupAbsent = !app.includes("'capture-title'") && !app.includes('this.el.title');
-const statusOwnsCaptureLabel = app.includes('parts.push(formatCaptureLabel(this.captureLabel))');
+const toolbarStateStart = app.indexOf('private renderToolbarState(): void {');
+const statusStart = app.indexOf('private renderStatus(): void {');
+const statusEnd = statusStart >= 0 ? app.indexOf('\n  private fail(', statusStart) : -1;
+const toolbarStateBody = toolbarStateStart >= 0 && statusStart > toolbarStateStart
+  ? app.slice(toolbarStateStart, statusStart)
+  : '';
+const statusBody = statusStart >= 0 && statusEnd > statusStart
+  ? app.slice(statusStart, statusEnd)
+  : '';
+const toolbarStateDescribesCapture = toolbarStateBody.length === 0 ||
+  toolbarStateBody.includes('formatCaptureLabel') || toolbarStateBody.includes('captureLabel');
+const statusOwnsCaptureLabel = statusBody.includes('parts.push(formatCaptureLabel(this.captureLabel))');
 check(
   'the toolbar carries no capture summary and the status bar is the sole description site',
-  toolbarSummaryAbsent && titleLookupAbsent && statusOwnsCaptureLabel,
-  `toolbarAbsent=${toolbarSummaryAbsent}, appAbsent=${titleLookupAbsent}, status=${statusOwnsCaptureLabel}`,
+  toolbarSummaryAbsent && titleLookupAbsent && !toolbarStateDescribesCapture && statusOwnsCaptureLabel,
+  `toolbarAbsent=${toolbarSummaryAbsent}, appAbsent=${titleLookupAbsent}, toolbarDescribes=${toolbarStateDescribesCapture}, status=${statusOwnsCaptureLabel}`,
+);
+
+const capturePanelKeepsLabelKey = capturePanel.includes("t('capturePanel.capture')");
+check(
+  'the capture panel retains the capturePanel.capture catalog key after the toolbar removal',
+  capturePanelKeepsLabelKey,
+  `capturePanel.capture=${capturePanelKeepsLabelKey}`,
 );
 
 const descriptionCounts = commandIds.map((id) => (
